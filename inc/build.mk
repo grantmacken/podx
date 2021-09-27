@@ -2,6 +2,9 @@
 Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
+.PHONY: build-images
+build-images: build-alpine ## buildah build all images
+
 .PHONY: build-alpine
 build-alpine: ## buildah build alpine with added directories and entrypoint
 	@echo "build $(call Build,$@) FROM docker.io/$(call Origin,$@):$(FROM_ALPINE_VER)"
