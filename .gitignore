@@ -1,0 +1,12 @@
+build
+deploy
+site
+.tmp
+.git
+src/proxy/certs/
+container-or.service
+container-xq.service
+pod-podx.service
+
+
+
