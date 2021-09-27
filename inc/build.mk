@@ -1,3 +1,9 @@
+###########################################
+## These images are built by github actions
+##########################################
+
+
+
 
 Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
