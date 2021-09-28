@@ -237,17 +237,20 @@ build-openresty: ## buildah build: openresty as a reverse proxy container
 	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version='$(GHPKG_OR_VER)' $${CONTAINER} # version
+	@buildah config --label org.opencontainers.image.version='$(FROM_OPENRESTY_VER)' $${CONTAINER} # version
 	@echo ' - check new conf file ... /opt/proxy/conf/base.conf'
 	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/base.conf -t' || true
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/base.conf", "-g", "daemon off;"]' $${CONTAINER}
 	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_OPENRESTY_VER)
 ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_OPENRESTY_VER)
 endif
+
+
+
 
 
 
