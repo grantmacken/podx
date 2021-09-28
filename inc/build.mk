@@ -6,7 +6,7 @@ Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-images
-build-images: build-magick build-webpack ## buildah build all images
+build-images: build-magick build-webpack build-xq ## buildah build all images
 
 ########################
 # from base alpine:
