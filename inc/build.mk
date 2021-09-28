@@ -215,9 +215,8 @@ ifdef GITHUB_ACTIONS
 endif
 
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
-# TODO basic build then add certs
 .PHONY: build-openresty
-build-openresty: ## buildah build: openresty as a reverse proxy container
+build-openresty: ## buildah build: openresty as base build for podx
 	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk )
 	@buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
@@ -249,7 +248,28 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_OPENRESTY_VER)
 endif
 
-
+.PHONY: build-or
+build-or: build-openresty ## buildah build: openresty as a reverse proxy container
+	@CONTAINER=$$(buildah from localhost/openresty )
+	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-openresty:$(FROM_OPENRESTY_VER) $${CONTAINER} # image is built FROM
+	@buildah config --label org.opencontainers.image.title='or a reverse-proxy and cache nginx server' $${CONTAINER} # title
+	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@): image used as a running container in a podman pod ' $${CONTAINER} # description
+	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	@buildah config --label org.opencontainers.image.version='$(GHPKG_OR_VER)' $${CONTAINER} # version
+	@# TODO add certs and set up example.com
+	@echo ' - check new conf file ... /opt/proxy/conf/base.conf'
+	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/base.conf -t' || true
+	@buildah config --cmd '' $${CONTAINER}
+	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/base.conf", "-g", "daemon off;"]' $${CONTAINER}
+	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
+	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
+ifdef GITHUB_ACTIONS
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
+endif
 
 
 
