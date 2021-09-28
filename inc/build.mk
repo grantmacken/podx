@@ -6,7 +6,7 @@ Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-images
-build-images: build-magick build-webpack build-xq ## buildah build all images
+build-images: build-magick build-webpack build-xq build-openresty ## buildah build all images
 
 ########################
 # from base alpine:
@@ -177,7 +177,7 @@ build-webpack: build-cssnano ## buildah build webpack
 	@buildah config --entrypoint '["/usr/local/bin/webpack"]' $${CONTAINER}
 	@buildah config --label org.opencontainers.image.base.name=node:alpine$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
 	@buildah config --label org.opencontainers.image.title='node-alpine based $(call Origin,$@) image' $${CONTAINER} # title
-	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
+	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used in stdin-stdout podx workflow' $${CONTAINER} # description
 	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
 	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
@@ -198,7 +198,7 @@ build-xq: ## buildah build xqerl database and xQuery 3.1 engine
 		/usr/local/xqerl/bin/scripts \
 	  /usr/local/xqerl/code/src \
 		/usr/local/xqerl/priv/static/assets
-	@buildah copy $${CONTAINER} src/escripts $(XQERL_HOME)/bin/scripts
+	@buildah copy $${CONTAINER} src/escripts /usr/local/xqerl/bin/scripts
 	@buildah config --label org.opencontainers.image.base.name=grantmacken/alpine-xqerl:$(FROM_XQERL_VER) $${CONTAINER} # image is built FROM
 	@buildah config --label org.opencontainers.image.title='xqerl XDM database and xQuery application engine' $${CONTAINER} # title
 	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) used as a running container in podman pod' $${CONTAINER} # description
@@ -207,7 +207,7 @@ build-xq: ## buildah build xqerl database and xQuery 3.1 engine
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
 	@buildah config --label org.opencontainers.image.version='$(GHPKG_XQ_VER)' $${CONTAINER} # version
-	@buildah config --cmd '' $${CONTAINER}
+	@# note: entrypoint predefined in base image
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_XQ_VER)
 ifdef GITHUB_ACTIONS
@@ -216,11 +216,9 @@ endif
 
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
 # TODO basic build then add certs
-.PHONY: proxy-build
-proxy-build: certs-create-self-signed ## buildah build: openresty as a reverse proxy container
+.PHONY: build-openresty
+build-openresty: ## buildah build: openresty as a reverse proxy container
 	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk )
-	@buildah run $${CONTAINER} sh -c 'openresty -v' || true
-	@echo ' - make directories'
 	@buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
 	  /opt/proxy/html \
@@ -230,23 +228,27 @@ proxy-build: certs-create-self-signed ## buildah build: openresty as a reverse p
 		/usr/local/openresty/site/lualib
 	@buildah run $${CONTAINER} sh -c \
 	'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty//nginx/html/* /etc/init.d/* /etc/conf.d/*' 
-	@echo ' - copy nginx src files into /opt/proxy/conf'
 	@buildah copy $${CONTAINER} src/proxy/conf /opt/proxy/conf
-	@buildah copy $${CONTAINER} src/proxy/certs /opt/proxy/certs
-	@echo ' - check new conf file ... /opt/proxy/conf/proxy.conf'
-	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -t' || true
-	@#buildah config --created-by "$(REPO_OWNER)" $${CONTAINER}
-	@echo ' - set working dir ...'
-	@buildah config --workingdir $(PROXY_PREFIX) $${CONTAINER} 
-	@echo ' - set entry point: with new prefix and alt config file'
+	@buildah config --workingdir /opt/proxy/ $${CONTAINER} 
+	@buildah config --label org.opencontainers.image.base.name=openresty/openresty:alpine-apk $${CONTAINER} # image is built FROM
+	@buildah config --label org.opencontainers.image.title='base openresty server' $${CONTAINER} # title
+	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@): image with added dirs. To be used in stdin-stdout podx workflow' $${CONTAINER} # description
+	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	@buildah config --label org.opencontainers.image.version='$(GHPKG_OR_VER)' $${CONTAINER} # version
+	@echo ' - check new conf file ... /opt/proxy/conf/base.conf'
+	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/base.conf -t' || true
 	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '[ "openresty", "-p", "$(PROXY_PREFIX)/", "-c", "$(PROXY_PREFIX)/conf/proxy.conf", "-g", "daemon off;"]' $${CONTAINER}
+	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/base.conf", "-g", "daemon off;"]' $${CONTAINER}
 	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
-	@echo ' - commit ...'
-	@buildah commit $${CONTAINER} proxy
-	@buildah tag localhost/proxy $(GHPKG_REGISTRY)/$(REPO_OWNER)/podx-or:$(GHPKG_XQ_VER)
-	@#buildah inspect --type=image proxy | jq '.'
-	@buildah rm $${CONTAINER} 
+	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
+ifdef GITHUB_ACTIONS
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
+endif
+
 
 
 
