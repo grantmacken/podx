@@ -9,7 +9,7 @@ Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-images
-build-images: build-w3m ## buildah build all images
+build-images: build-cmark ## buildah build all images
 
 .PHONY: build-alpine
 build-alpine: ## buildah build alpine with added directories and entrypoint
@@ -33,7 +33,7 @@ build-alpine: ## buildah build alpine with added directories and entrypoint
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
 	@buildah config --label org.opencontainers.image.version='$(FROM_ALPINE_VER)' $${CONTAINER} # version
-	@buildah commit -squash --rm $${CONTAINER} localhost/$(call Origin,$@)
+	@buildah commit --squash --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_ALPINE_VER)
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_ALPINE_VER)
 
@@ -48,11 +48,30 @@ build-w3m: build-alpine ## buildah build $(call Origin,$@)
 	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version='$(FROM_ALPINE_VER)' $${CONTAINER} # version
+	@buildah config --label org.opencontainers.image.version='$(GHPKG_W3M_VER)' $${CONTAINER} # version
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_W3M_VER)
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_W3M_VER)
+
+.PHONY: build-cmark
+build-cmark: build-w3m ## buildah build w3m
+	@CONTAINER=$$(buildah from localhost/alpine)
+	@buildah run $${CONTAINER} apk add --no-cache cmark
+	@buildah config --cmd '' $${CONTAINER}
+	@buildah config --entrypoint '["/usr/bin/cmark"]' $${CONTAINER}
+	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
+	@buildah config --label org.opencontainers.image.title='alpine based $(call Origin,$@) image' $${CONTAINER} # title
+	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
+	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	@buildah config --label org.opencontainers.image.version='$(GHPKG_CMARK_VER)' $${CONTAINER} # version
+	@buildah config --cmd '' $${CONTAINER}
+	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
 
 .PHONY: xqerl-build
 xqerl-build: ## buildah build xqerl database and xQuery 3.1 engine
@@ -65,6 +84,8 @@ xqerl-build: ## buildah build xqerl database and xQuery 3.1 engine
 	@buildah commit $${CONTAINER} xqerl
 	@buildah tag localhost/xqerl $(GHPKG_REGISTRY)/$(REPO_OWNER)/podx-xq:$(GHPKG_XQ_VER))
 	@buildah rm $${CONTAINER}
+
+
 
 
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
