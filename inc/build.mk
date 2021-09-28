@@ -228,7 +228,7 @@ build-openresty: ## buildah build: openresty as a reverse proxy container
 		/usr/local/openresty/site/lualib
 	@buildah run $${CONTAINER} sh -c \
 	'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty//nginx/html/* /etc/init.d/* /etc/conf.d/*' 
-	@buildah copy $${CONTAINER} src/proxy/conf /opt/proxy/conf
+	@buildah copy $${CONTAINER} src/proxy/conf/. /opt/proxy/conf/
 	@buildah config --workingdir /opt/proxy/ $${CONTAINER} 
 	@buildah config --label org.opencontainers.image.base.name=openresty/openresty:alpine-apk $${CONTAINER} # image is built FROM
 	@buildah config --label org.opencontainers.image.title='base openresty server' $${CONTAINER} # title
