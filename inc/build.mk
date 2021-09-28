@@ -117,10 +117,8 @@ build-magick: build-zopfli ## buildah build imagemagick
 	@buildah run $${CONTAINER} mkdir -p /opt/proxy/html/images
 	@buildah config --workingdir /opt/proxy/html/images $${CONTAINER}
 	@buildah commit $${CONTAINER} magick
-	@buildah tag localhost/magick $(GHPKG_REGISTRY)/$(REPO_OWNER)/podx-magick:$(GHPKG_MAGICK_VER)
-	@buildah rm $${CONTAINER} 
 	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
-	@buildah config --label org.opencontainers.image.title='alpine based $(call Origin,$@) image' $${CONTAINER} # title
+	@buildah config --label org.opencontainers.image.title='alpine based image$(call Origin,$@) image' $${CONTAINER} # title
 	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
 	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
 	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
@@ -130,10 +128,12 @@ build-magick: build-zopfli ## buildah build imagemagick
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_MAGICK_VER)
+ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_MAGICK_VER)
+endif
 
-
-
+##########
+# webpack and cssnano based on node:apline
 
 
 .PHONY: build-webpack
