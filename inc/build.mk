@@ -6,7 +6,7 @@ Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-images
-build-images: build-magick ## buildah build all images
+build-images: build-magick build-webpack ## buildah build all images
 
 ########################
 # from base alpine:
@@ -16,7 +16,6 @@ build-images: build-magick ## buildah build all images
 #  - podx-zopfli
 #  - podx-magick
 #  - podx-openresty
-#
 # from base node:alpine:
 #  - podx-cssnano
 #  - podx-webpack
@@ -46,7 +45,9 @@ build-alpine: ## buildah build alpine with added directories and entrypoint
 	@buildah config --label org.opencontainers.image.version='$(FROM_ALPINE_VER)' $${CONTAINER} # version
 	@buildah commit --squash --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_ALPINE_VER)
+ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_ALPINE_VER)
+endif
 
 .PHONY: build-w3m
 build-w3m: build-alpine ## buildah build $(call Origin,$@) 
@@ -63,7 +64,9 @@ build-w3m: build-alpine ## buildah build $(call Origin,$@)
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_W3M_VER)
+ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_W3M_VER)
+endif
 
 .PHONY: build-cmark
 build-cmark: build-w3m ## buildah build w3m
@@ -82,7 +85,9 @@ build-cmark: build-w3m ## buildah build w3m
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
+ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
+endif
 
 .PHONY: build-zopfli
 build-zopfli: build-cmark ## buildah build zopfli
@@ -108,7 +113,9 @@ build-zopfli: build-cmark ## buildah build zopfli
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_ZOPFLI_VER)
+ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_ZOPFLI_VER)
+endif
 
 .PHONY: build-magick
 build-magick: build-zopfli ## buildah build imagemagick
@@ -132,19 +139,44 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_MAGICK_VER)
 endif
 
-##########
+###########
 # webpack and cssnano based on node:apline
+# #########
 
+.PHONY: build-cssnano
+build-cssnano: ## buildah build cssnano
+	@CONTAINER=$$(buildah from docker.io/node:alpine$(FROM_ALPINE_VER))
+	@buildah run $${CONTAINER} npm install -g cssnano postcss postcss-cli
+	@buildah run $${CONTAINER} mkdir -p -v /opt/proxy/html
+	@buildah config --workingdir /opt/proxy/html $${CONTAINER}
+	@buildah config --cmd '' $${CONTAINER}
+	@buildah config --entrypoint '["/usr/local/bin/postcss"]' $${CONTAINER}
+	@buildah commit $${CONTAINER} cssnano
+	@buildah config --label org.opencontainers.image.base.name=node:alpine$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
+	@buildah config --label org.opencontainers.image.title='node-alpine based image$(call Origin,$@) image' $${CONTAINER} # title
+	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
+	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	@buildah config --label org.opencontainers.image.version='$(GHPKG_CSSNANO_VER)' $${CONTAINER} # version
+	@buildah config --cmd '' $${CONTAINER}
+	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CSSNANO_VER)
+ifdef GITHUB_ACTIONS
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CSSNANO_VER)
+endif
 
 .PHONY: build-webpack
-build-webpack:  ## buildah build webpack
+build-webpack: build-cssnano ## buildah build webpack
 	@CONTAINER=$$(buildah from docker.io/node:alpine$(FROM_ALPINE_VER))
 	@buildah run $${CONTAINER} npm install -g webpack webpack-cli
-	@buildah run $${CONTAINER} webpack -v
+	@buildah run $${CONTAINER} mkdir -p -v /opt/proxy/html
+	@buildah config --workingdir /opt/proxy/html $${CONTAINER}
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah config --entrypoint '["/usr/local/bin/webpack"]' $${CONTAINER}
-	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
-	@buildah config --label org.opencontainers.image.title='alpine based $(call Origin,$@) image' $${CONTAINER} # title
+	@buildah config --label org.opencontainers.image.base.name=node:alpine$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
+	@buildah config --label org.opencontainers.image.title='node-alpine based $(call Origin,$@) image' $${CONTAINER} # title
 	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
 	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
 	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
@@ -154,19 +186,10 @@ build-webpack:  ## buildah build webpack
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_WEBPACK_VER)
+ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_WEBPACK_VER)
+endif
 
-.PHONY: cssnano-build
-cssnano-build: ## buildah build webpack
-	@CONTAINER=$$(buildah from docker.io/node:alpine$(FROM_ALPINE_VER))
-	@buildah run $${CONTAINER} npm install -g cssnano postcss postcss-cli
-	@buildah run $${CONTAINER} which npx
-	@buildah run $${CONTAINER} ls -alR /usr/local/bin
-	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '["/usr/local/bin/postcss"]' $${CONTAINER}
-	@buildah commit $${CONTAINER} cssnano
-	@#buildah tag localhost/webpack $(GHPKG_REGISTRY)/$(REPO_OWNER)/podx-cssnano:$(GHPKG_ZOPFLI_VER))
-	@buildah rm $${CONTAINER}
 
 .PHONY: xqerl-build
 xqerl-build: ## buildah build xqerl database and xQuery 3.1 engine
