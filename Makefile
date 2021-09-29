@@ -4,22 +4,35 @@ SHELL := /bin/bash
 .DELETE_ON_ERROR:
 # invoke with alias mk 
 include .env
+# images
+#ALPINE    := ghcr.io/grantmacken/podx-alpine:$(GHPKG_ALPINE_VER)
+CMARK     := ghcr.io/grantmacken/podx-cmark:$(GHPKG_CMARK_VER)
+MAGICK    := ghcr.io/grantmacken/podx-magick:$(GHPKG_MAGICK_VER)
+W3M       := ghcr.io/grantmacken/podx-w3m:$(GHPKG_W3M_VER)
+ZOPFLI    := ghcr.io/grantmacken/podx-zopfli:$(GHPKG_ZOPFLI_VER)
+CSSNANO   := ghcr.io/grantmacken/podx-cssnano:$(GHPKG_CSSNANO_VER)
+WEBPACK   := ghcr.io/grantmacken/podx-webpack:$(GHPKG_WEBPACK_VER)
+OPENRESTY := ghcr.io/grantmacken/podx-openresty:$(FROM_OPENRESTY_VER)
+ALPINE    := ghcr.io/grantmacken/podx-alpine:$(FROM_ALPINE_VER)
+
+XQ        := ghcr.io/grantmacken/podx-xq:$(GHPKG_XQ_VER)
+OR        := ghcr.io/grantmacken/podx-or:$(GHPKG_OR_VER)
+
+
 PROXY_IMAGE=proxy
 # OPM_IMAGE=$(GHPKG_REGISTRY)/$(REPO_OWNER)/$(PROXY_NAME):opm-$(PROXY_VER)
 #RESTY_IMAGE=$(GHPKG_REGISTRY)/$(REPO_OWNER)/$(PROXY_NAME):resty-$(PROXY_VER)
 XQERL_IMAGE=xqerl
 # proxy mounts
 MountLetsencrypt := type=volume,target=/etc/letsencrypt,source=letsencrypt
-MountCerts := type=volume,target=/opt/proxy/certs,source=certs
+MountCerts       := type=volume,target=/opt/proxy/certs,source=certs
 MountProxyConf   := type=volume,target=/opt/proxy/conf,source=proxy-conf
-MountLualib := type=volume,target=$(OPENRESTY_HOME)/site/lualib,source=lualib
-MountAssets := type=volume,target=/opt/proxy/html,source=static-assets
+MountAssets      := type=volume,target=/opt/proxy/html,source=static-assets
+MountLualib      := type=volume,target=/usr/local/openresty/site/lualib,source=lualib
 # xqerl mounts
-MountCode   := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
-MountData   := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
+MountCode        := type=volume,target=/usr/local/xqerl/code,source=xqerl-compiled-code
+MountData        := type=volume,target=/usr/local/xqerl/data,source=xqerl-database
 #MountEscripts   := type=volume,target=$(XQERL_HOME)/bin/scripts,source=xqerl-escripts
-# container path roots
-W3M := podman run --pod $(POD) --interactive --rm  localhost/w3m
 DASH = printf %60s | tr ' ' '-' && echo
 
 .PHONY: help
