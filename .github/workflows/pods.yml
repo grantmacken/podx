@@ -22,3 +22,7 @@ jobs:
         run: make volumes
       - name: podman create the podx pod
         run: make podx
+      - name: xq running in the podx pod
+        run: make xq
+      - name: view xq running podx pod
+        run: podman ps --all --pod

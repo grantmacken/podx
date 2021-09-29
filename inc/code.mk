@@ -10,8 +10,11 @@ BuildLibCode := $(patsubst src/%,build/%,$(CodeLibraryModules))
 # CodeMainModules  :=  $(wildcard src/code/*.xq)
 # BuildMainCode := $(patsubst src/%,build/%,$(CodeMainModules))
 
-PHONY: code
-code: $(BuildLibCode) deploy/code.tar # deploy/xqerl-compiled-code.tar
+PHONY: code # compile all xQuery library modules files in src/code
+code: $(BuildLibCode) 
+
+PHONY: code-tar
+code-tar: deploy/xqerl-compiled-code.tar # deploy/xqerl-compiled-code.tar
 
 .PHONY: watch-code
 watch-code:
@@ -36,9 +39,9 @@ watch-code-view:
 .phony: code-clean
 code-clean:
 	@echo '## $(@) ##'
-	@rm -v $(BuildLibraryModules) || true
+	@rm -v $(BuildLibCode) || true
 	@rm -v deploy/xqerl-compiled-code.tar || true
-	@podman run --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQERL_IMAGE) \
+	@podman run --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQ) \
 		-c 'echo -n "container xq: " && rm -v ./code/src/*' || true
 
 .PHONY: code-list

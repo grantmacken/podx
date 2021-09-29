@@ -50,17 +50,16 @@ podx: # --publish 80:80 --publish 443:443
 	@podman pod list
 
 .PHONY: xq # in podx listens on port 8081/tcp 
-xq: 
-	@echo "#(: $(@) :)#"
-	@podman pod exists $(@) || podman run --pod $(POD) \
+xq:
+	@echo "##[ $(@) ]##"
+	@#podman stop xq || true
+	@#podman stop rm xq || true
+	@podman run --pod $(POD) \
 		 --mount $(MountCode) --mount $(MountData) \
-		 --name $(@) \
-		--detach $(XQERL_IMAGE)
+		 --name xq \
+		--detach $(XQ)
 	@sleep 3
-	@# TODO compile all library modules in src
-	@xq compile src/code/example.com.xqm
-	@echo
-	@sleep 1
+	@$(MAKE) code
 
 .PHONY: or # in podx listens on 80/tcp port. As podx exposes that port as 8080/tcp in the host, you can reach the app
 or: 
