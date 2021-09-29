@@ -10,12 +10,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
       - name: podman pull our images
         run: make pods-pull
       - name: podman create our volumes for podx
@@ -26,3 +20,5 @@ jobs:
         run: make xq
       - name: view xq running podx pod
         run: podman ps --all --pod
+      - name: create some content for example.com
+        run: make content

@@ -2,16 +2,15 @@
 ### XQUERY CODE ###
 # xquery main modules put into *xqerl-compiled-code* volume
 # files are xQuery *library modules* except
-# the restXQ files which can be a main modules?
 ###########################
 CodeLibraryModules  :=  $(filter-out src/code/example.com.xqm ,$(wildcard src/code/*.xqm))  src/code/example.com.xqm
-BuildLibCode := $(patsubst src/%,build/%,$(CodeLibraryModules))
+BuildLibCode := $(patsubst src/%.xqm,build/%.xqm.txt,$(CodeLibraryModules))
 
-# CodeMainModules  :=  $(wildcard src/code/*.xq)
-# BuildMainCode := $(patsubst src/%,build/%,$(CodeMainModules))
+CodeMainModules  :=  $(wildcard src/code/*.xq)
+BuildMainCode := $(patsubst src/%.xq,build/%.xq.txt,$(CodeMainModules))
 
 PHONY: code # compile all xQuery library modules files in src/code
-code: $(BuildLibCode) 
+code: $(BuildLibCode) $(BuildMainCode)
 
 PHONY: code-tar
 code-tar: deploy/xqerl-compiled-code.tar # deploy/xqerl-compiled-code.tar
@@ -39,7 +38,7 @@ watch-code-view:
 .phony: code-clean
 code-clean:
 	@echo '## $(@) ##'
-	@rm -v $(BuildLibCode) || true
+	@rm -v $(BuildLibCode)  $(BuildMainCode) || true
 	@rm -v deploy/xqerl-compiled-code.tar || true
 	@podman run --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQ) \
 		-c 'echo -n "container xq: " && rm -v ./code/src/*' || true
@@ -50,25 +49,29 @@ code-list:
 	@podman run --pod $(POD) --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQERL_IMAGE) \
 		-c 'ls -al ./code/src'
 
-build/code/%.xqm: src/code/%.xqm
+build/code/%.xqm.txt: src/code/%.xqm
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir $<) ##'
 	@# container xq server must be running
-	@if xq compile $< | grep ':E:' 
+	@bin/xq compile $< | tee $@
+	@echo
+	@if cat $< | grep -q ':E:' 
 	then
+	rm $@
 	false
 	fi
-	@cp $< $@
 
-build/code/%.xq: src/code/%.xq
+build/code/%.xq.txt: src/code/%.xq
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir $<) ##'
 	@# container xq server must be running
-	@if xq compile $< | grep ':E:' 
+	@bin/xq compile $< | tee $@
+	@echo
+	@if cat $< | grep -q ':E:' 
 	then
+	rm $@
 	false
 	fi
-	@cp $< $@
 
 deploy/code.tar:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)

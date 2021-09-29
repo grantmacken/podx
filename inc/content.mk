@@ -10,9 +10,8 @@ BuildTemplate  := $(patsubst src/%.xq,build/%.tpl.txt,$(TemplateList))
 BuildDataMap := $(patsubst src/%.json,build/%.map.txt,$(DataMapList))
 
 PHONY: content
-content: $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap)
-
-PHONY: content
+content: $(BuildMarkdown) $(BuildDataMap) $(BuildTemplate)
+PHONY: content-tar
 content-tar: deploy deploy/xqerl-database.tar
 
 .PHONY: watch-content
@@ -50,17 +49,17 @@ content-list:
 build/data/%.cmark.txt: src/data/%.md
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir  $<) ##'
-	@xq put $< | tee $@
+	@bin/xq put $<  | tee $@
 
 build/data/%.map.txt: src/data/%.json
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir  $<) ##'
-	xq put $< | tee $@
+	@bin/xq put $< | tee $@
 
 build/data/%.tpl.txt: src/data/%.xq
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir  $<) ##'
-	@xq put $< | tee $@
+	@bin/xq put $< | tee $@
 
 deploy/xqerl-database.tar:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)

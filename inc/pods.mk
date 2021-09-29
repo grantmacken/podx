@@ -52,14 +52,20 @@ podx: # --publish 80:80 --publish 443:443
 .PHONY: xq # in podx listens on port 8081/tcp 
 xq:
 	@echo "##[ $(@) ]##"
-	@#podman stop xq || true
-	@#podman stop rm xq || true
 	@podman run --pod $(POD) \
 		 --mount $(MountCode) --mount $(MountData) \
 		 --name xq \
 		--detach $(XQ)
-	@sleep 3
+	@sleep 1
+	@bin/xq eval 'application:ensure_all_started(xqerl).' | grep -q ok
+	@# after xq is up then compile code 
 	@$(MAKE) code
+
+.PHONY: xq-down
+xq-down: code-clean
+	@echo "##[ $(@) ]##"
+	@podman stop xq
+	@podman rm xq
 
 .PHONY: or # in podx listens on 80/tcp port. As podx exposes that port as 8080/tcp in the host, you can reach the app
 or: 
