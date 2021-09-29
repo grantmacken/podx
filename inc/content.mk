@@ -26,7 +26,8 @@ CONTENT := home/index
 PHONY: content-view
 content-view:
 	@$(DASH) && echo
-	@podman run --pod $(POD) --rm -it  localhost/w3m -dump http://localhost:8081/$(DOMAIN)/content/$(CONTENT)
+	@# podman run --pod $(POD) --rm -it  --entrypoint "sh" $(W3M)
+	@podman run --pod $(POD) --rm -it $(W3M) -dump http://localhost:8081/$(DOMAIN)/content/$(CONTENT)
 	@$(DASH)
 
 .PHONY: watch-content-view

@@ -62,6 +62,7 @@ build-w3m: build-alpine ## buildah build $(call Origin,$@)
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
 	@buildah config --label org.opencontainers.image.version='$(GHPKG_W3M_VER)' $${CONTAINER} # version
 	@buildah config --cmd '' $${CONTAINER}
+	@buildah config --entrypoint '["w3m"]' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_W3M_VER)
 ifdef GITHUB_ACTIONS
