@@ -18,5 +18,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: podman pull our images
         run: make pods-pull
-      - name: podman create our volumes
+      - name: podman create our volumes for podx
         run: make volumes
+      - name: podman create the podx pod
+        run: make podx
