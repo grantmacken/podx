@@ -28,17 +28,17 @@ pods-pull:
 	@podman pull $(OPENRESTY)
 	@podman image list
 
-
 # TODO use certs for letsencrypt
-.PHONY: vol
-vol:
+.PHONY: volumes
+volumes:
 	@podman volume exists static-assets || podman volume create static-assets
 	@podman volume exists proxy-conf || podman volume create proxy-conf
-	@podman volume exists letsencrypt || podman volume create letsencrypt
+	@#podman volume exists letsencrypt || podman volume create letsencrypt
 	@podman volume exists certs || podman volume create certs
 	@podman volume exists lualib || podman volume create lualib
 	@podman volume exists xqerl-database || podman volume create xqerl-database
 	@podman volume exists xqerl-compiled-code || podman volume create xqerl-compiled-code
+	@podman volume ls
 
 .PHONY: podx
 podx: # --publish 80:80 --publish 443:443
