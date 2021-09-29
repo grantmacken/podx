@@ -6,7 +6,7 @@ Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-images
-build-images: build-magick build-webpack build-xq build-openresty ## buildah build all images
+build-images: build-magick build-webpack build-openresty build-xq ## buildah build all images
 
 ########################
 # from base alpine:
@@ -240,7 +240,7 @@ build-openresty: ## buildah build: openresty as base build for podx
 	@echo ' - check new conf file ... /opt/proxy/conf/base.conf'
 	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/base.conf -t' || true
 	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/base.conf", "-g", "daemon off;"]' $${CONTAINER}
+d	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/base.conf", "-g", "daemon off;"]' $${CONTAINER}
 	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_OPENRESTY_VER)
@@ -248,8 +248,8 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_OPENRESTY_VER)
 endif
 
-.PHONY: build-or
-build-or: build-openresty ## buildah build: openresty as a reverse proxy container
+.PHONY: build-proxy
+build-proxy: ## buildah build: openresty as a reverse proxy container
 	@CONTAINER=$$(buildah from localhost/openresty )
 	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-openresty:$(FROM_OPENRESTY_VER) $${CONTAINER} # image is built FROM
 	@buildah config --label org.opencontainers.image.title='or a reverse-proxy and cache nginx server' $${CONTAINER} # title
@@ -271,14 +271,7 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
 endif
 
-
-
-
-
-
 # https://github.com/postcss/postcss-cli
-#
-
 ##################
 ## checks: xqerl
 ##################

@@ -12,6 +12,9 @@ BuildDataMap := $(patsubst src/%.json,build/%.map.txt,$(DataMapList))
 PHONY: content
 content: $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap)
 
+PHONY: content
+content-tar: deploy deploy/xqerl-database.tar
+
 .PHONY: watch-content
 watch-content:
 	@while true; do \
@@ -19,10 +22,12 @@ watch-content:
         inotifywait -qre close_write ./src/data/$(DOMAIN)/content/ || true; \
     done
 
+CONTENT := home/index
+
 PHONY: content-view
 content-view:
 	@$(DASH) && echo
-	@podman run --pod $(POD) --rm -it  localhost/w3m -dump http://localhost:8081/$(DOMAIN)/content/home/index
+	@podman run --pod $(POD) --rm -it  localhost/w3m -dump http://localhost:8081/$(DOMAIN)/content/$(CONTENT)
 	@$(DASH)
 
 .PHONY: watch-content-view
@@ -56,3 +61,8 @@ build/data/%.tpl.txt: src/data/%.xq
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir  $<) ##'
 	@xq put $< | tee $@
+
+deploy/xqerl-database.tar:
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@podman run  --interactive --rm  --mount $(MountData)  \
+	 --entrypoint "tar" $(XQERL_IMAGE) -czf - $(XQERL_HOME)/data 2>/dev/null > $@
