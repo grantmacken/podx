@@ -24,3 +24,5 @@ jobs:
         run: podman ps --all --pod
       - name: create some content for example.com
         run: make content
+      - name: view content for example.com
+        run: make content-view
