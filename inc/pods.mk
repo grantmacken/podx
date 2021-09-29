@@ -15,17 +15,19 @@ pods: vol podx xq or
 	@podman pod list
 	@podman ps -a --pod
 
-.PHONY: pull
-pull:
-	@podman pull $(PROXY_IMAGE) && podman pull $(XQERL_IMAGE)
-	@podman pull docker.io/curlimages/curl
+.PHONY: pods-pull
+pods-pull:
+	@podman pull $(ALPINE)
+	@podman pull $(CMARK)
+	@podman pull $(MAGICK)
+	@podman pull $(W3M)
+	@podman pull $(ZOPFLI)
+	@podman pull $(CSSNANO)
+	@podman pull $(WEBPACK)
+	@podman pull $(XQ)
+	@podman pull $(OPENRESTY)
 	@podman image list
 
-.PaaHONY: pull-helpers
-pull-helpers:
-	@podman pull ghcr.io/grantmacken/podx-zopfli:$(GHPKG_ZOPFLI_VER)
-	@podman pull ghcr.io/grantmacken/podx-w3m:$(GHPKG_W3M_VER)
-	@podman pull ghcr.io/grantmacken/podx-xqerl:$(GHPKG_XQ_VER)
 
 # TODO use certs for letsencrypt
 .PHONY: vol
