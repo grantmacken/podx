@@ -1,7 +1,7 @@
 name: podx builds
 on:
   push:
-    branches: main
+    branches: build*
 jobs:
   build:
     runs-on: ubuntu-latest

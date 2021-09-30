@@ -15,28 +15,30 @@ pods: vol podx xq or
 	@podman pod list
 	@podman ps -a --pod
 
-.PHONY: pull
-pull:
-	@podman pull $(PROXY_IMAGE) && podman pull $(XQERL_IMAGE)
-	@podman pull docker.io/curlimages/curl
+.PHONY: pods-pull
+pods-pull:
+	@podman pull $(ALPINE)
+	@podman pull $(CMARK)
+	@podman pull $(MAGICK)
+	@podman pull $(W3M)
+	@podman pull $(ZOPFLI)
+	@podman pull $(CSSNANO)
+	@podman pull $(WEBPACK)
+	@podman pull $(XQ)
+	@podman pull $(OPENRESTY)
 	@podman image list
 
-.PaaHONY: pull-helpers
-pull-helpers:
-	@podman pull ghcr.io/grantmacken/podx-zopfli:$(GHPKG_ZOPFLI_VER)
-	@podman pull ghcr.io/grantmacken/podx-w3m:$(GHPKG_W3M_VER)
-	@podman pull ghcr.io/grantmacken/podx-xqerl:$(GHPKG_XQ_VER)
-
 # TODO use certs for letsencrypt
-.PHONY: vol
-vol:
+.PHONY: volumes
+volumes:
 	@podman volume exists static-assets || podman volume create static-assets
 	@podman volume exists proxy-conf || podman volume create proxy-conf
-	@podman volume exists letsencrypt || podman volume create letsencrypt
+	@#podman volume exists letsencrypt || podman volume create letsencrypt
 	@podman volume exists certs || podman volume create certs
 	@podman volume exists lualib || podman volume create lualib
 	@podman volume exists xqerl-database || podman volume create xqerl-database
 	@podman volume exists xqerl-compiled-code || podman volume create xqerl-compiled-code
+	@podman volume ls
 
 .PHONY: podx
 podx: # --publish 80:80 --publish 443:443
@@ -48,17 +50,22 @@ podx: # --publish 80:80 --publish 443:443
 	@podman pod list
 
 .PHONY: xq # in podx listens on port 8081/tcp 
-xq: 
-	@echo "#(: $(@) :)#"
-	@podman pod exists $(@) || podman run --pod $(POD) \
+xq:
+	@echo "##[ $(@) ]##"
+	@podman run --pod $(POD) \
 		 --mount $(MountCode) --mount $(MountData) \
-		 --name $(@) \
-		--detach $(XQERL_IMAGE)
+		 --name xq \
+		--detach $(XQ)
 	@sleep 3
-	@# TODO compile all library modules in src
-	@xq compile src/code/example.com.xqm
-	@echo
-	@sleep 1
+	@bin/xq eval 'application:ensure_all_started(xqerl).'
+	@# after xq is up then compile code 
+	@$(MAKE) code
+
+.PHONY: xq-down
+xq-down: code-clean
+	@echo "##[ $(@) ]##"
+	@podman stop xq
+	@podman rm xq
 
 .PHONY: or # in podx listens on 80/tcp port. As podx exposes that port as 8080/tcp in the host, you can reach the app
 or: 

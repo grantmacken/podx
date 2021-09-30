@@ -34,8 +34,10 @@ grep -oP '^XQERL_HOME' .env &>/dev/null || die "you are not calling xq from a xQ
 # check required arguments
 [[ ${#args[@]} -eq 0 ]] && help && exit
 source .env
+
 XQERL_IMAGE=ghcr.io/grantmacken/podx-xqerl:${GHPKG_XQ_VER} 
-CMARK_IMG=${GHPKG_REGISTRY}/grantmacken/podx-cmark:${GHPKG_CMARK_VER}
+CMARK_IMG=ghcr.io/grantmacken/podx-cmark:${GHPKG_CMARK_VER}
+
 MountAssets="type=volume,target=${XQERL_HOME}/priv/static/assets,source=static-assets"
 ##################
 # helpers
@@ -46,12 +48,10 @@ podman exec xq xqerl escript bin/scripts/query.escript "$1"
 
 function cmdAssetsMount() {
 podman run --rm --interactive \
-  --mount "type=volume,target=${XQERL_HOME}/priv/static/assets,source=static-assets" \
+  --mount "type=volume,target=/usr/local/xqerl/priv/static/assets,source=static-assets" \
   --entrypoint "sh" \
   ${XQERL_IMAGE} -c "$1"
 }
-
-
 
 #######################
 #  xq db CRUD commands for xqerl db
@@ -71,13 +71,8 @@ function dbFilePut() {
     podman exec xq xqerl escript bin/scripts/run2.escript store.xq "$base" "$(< $srcFile)"
   elif echo ${ext} | grep -oP '^(xq)$' &>/dev/null
     then
-       # echo $baseName
-       # echo $dirName
-       # echo $resource
-       # exit
        # https://en.wikipedia.org/wiki/Web_template_system
        local uri="http://${dirName}/$res.tpl"
-       # podman exec xq xqerl escript bin/scripts/compile.escript  "code/src/$base"
     cmdQuery \
 "declare %updating 
 function local:store( \$item , \$uri){ db:put( \$item, \$uri ) }; 
@@ -89,10 +84,12 @@ local:store( $(cat $srcFile ), '$uri' ),
 )} catch * {' error: failed to store function item [ $srcFile ]'}"
   elif echo ${ext} | grep -oP '^(md)$' &>/dev/null
     then
+      local uri="http://${dirName}/$res.cmark"
       local cmark_xml=$( cat $srcFile | \
-      podman run --rm  --interactive ${CMARK_IMG} --to xml --sourcepos  --validate-utf8 --smart | \
+      podman run --rm  --interactive ${CMARK_IMG} --to xml --validate-utf8 --smart | \
       sed -e '1,2d')
-      podman exec xq xqerl escript bin/scripts/run2.escript store.xq "$base" "${cmark_xml}"
+     # --sourcepos  --validate-utf8 --smart
+     podman exec xq xqerl escript bin/scripts/run2.escript store.xq "$base" "${cmark_xml}"
   elif echo ${ext} | grep -oP '^(html)$' &>/dev/null
     then
       local tidy_img='podman.pkg.github.com/grantmacken/alpine-htmltidy/htmltidy5:5.7.28'
