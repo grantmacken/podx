@@ -15,6 +15,8 @@ WEBPACK   := ghcr.io/grantmacken/podx-webpack:$(GHPKG_WEBPACK_VER)
 OPENRESTY := ghcr.io/grantmacken/podx-openresty:$(FROM_OPENRESTY_VER)
 ALPINE    := ghcr.io/grantmacken/podx-alpine:$(FROM_ALPINE_VER)
 
+CURL := docker.io/curlimages/curl:latest
+
 XQ        := ghcr.io/grantmacken/podx-xq:$(GHPKG_XQ_VER)
 OR        := ghcr.io/grantmacken/podx-or:$(GHPKG_OR_VER)
 
@@ -44,7 +46,6 @@ help: ## show this help
 
 include inc/*.mk
 
-CURL_IMAGE := docker.io/curlimages/curl:latest
 #CONNECT_TO := --connect-to $(XQ):80:xq.$(NETWORK):$(XQERL_PORT) 
 #RESOLVE := --resolve $(XQ):$(XQERL_PORT):$(ipAddress)
 #CURL := docker run --pod $(POD) --rm --interactive  $(CURL_IMAGE) $(CONNECT_TO)
