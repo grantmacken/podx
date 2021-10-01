@@ -78,20 +78,21 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_W3M_VER)
 endif
 
+# https://github.com/commonmark/cmark/releases
 .PHONY: build-cmark
-build-cmark: ## buildah build w3m
+build-cmark: ## buildah build cmark - built with cmark release tar
 	@CONTAINER=$$(buildah from localhost/alpine)
 	@buildah run $${CONTAINER} /bin/sh -c \
 		'apk add --virtual .build-deps build-base cmake \
 		&& cd /home \
-		&& wget -O cmark.tar.gz https://github.com/commonmark/cmark/archive/$(CMARK_RELEASE_VER).tar.gz \
+		&& wget -O cmark.tar.gz https://github.com/commonmark/cmark/archive/$(GHPKG_CMARK_VER).tar.gz \
 		&& tar -C /tmp -xf ./cmark.tar.gz \
-    && cd /tmp/cmark-$(CMARK_RELEASE_VER) \
+    && cd /tmp/cmark-$(GHPKG_CMARK_VER) \
     && cmake \
     && make install \
     && cd /home \
     && rm -f ./cmark.tar.gz \
-    && rm -r /tmp/cmark-$(CMARK_RELEASE_VER) \
+    && rm -r /tmp/cmark-$(GHPKG_CMARK_VER) \
     && apk del .build-deps \
 		'
 	@buildah run $${CONTAINER} ls -alR /home
@@ -104,11 +105,11 @@ build-cmark: ## buildah build w3m
 	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version='$(CMARK_RELEASE_VER)' $${CONTAINER} # version
+	@buildah config --label org.opencontainers.image.version='$(GHPKG_CMARK_VER)' $${CONTAINER} # version
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(CMARK_RELEASE_VER)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
 ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(CMARK_RELEASE_VER)
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
 endif
 
 .PHONY: xxx

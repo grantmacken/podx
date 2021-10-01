@@ -6,7 +6,7 @@ SHELL := /bin/bash
 include .env
 # images
 #ALPINE    := ghcr.io/grantmacken/podx-alpine:$(GHPKG_ALPINE_VER)
-CMARK     := ghcr.io/grantmacken/podx-cmark:$(CMARK_RELEASE_VER)
+CMARK     := ghcr.io/grantmacken/podx-cmark:$(GHPKG_CMARK_VER)
 MAGICK    := ghcr.io/grantmacken/podx-magick:$(GHPKG_MAGICK_VER)
 W3M       := ghcr.io/grantmacken/podx-w3m:$(GHPKG_W3M_VER)
 ZOPFLI    := ghcr.io/grantmacken/podx-zopfli:$(GHPKG_ZOPFLI_VER)
