@@ -26,6 +26,7 @@ pods-pull:
 	@podman pull $(WEBPACK)
 	@podman pull $(XQ)
 	@podman pull $(OPENRESTY)
+	@podman pull $(CURL)
 	@podman image list
 
 # TODO use certs for letsencrypt

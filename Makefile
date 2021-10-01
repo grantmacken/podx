@@ -52,9 +52,9 @@ include inc/*.mk
 
 .PHONY: crl
 crl: 
-	podman run --pod $(POD) --rm --interactive  $(CURL_IMAGE) -v http://localhost:8081/example.com/home/index
-	podman run --pod $(POD) --rm -it  localhost/w3m -dump_extra http://localhost:8081/example.com/home/index
-	podman run --pod $(POD) --rm -it  localhost/w3m -dump http://localhost:8081/example.com/home/index
+	podman run --pod $(POD) --rm --interactive  $(CURL) -v http://localhost:8081/example.com/content/home/index
+	#podman run --pod $(POD) --rm -it  localhost/w3m -dump_extra http://localhost:8081/example.com/home/index
+	#podman run --pod $(POD) --rm -it  localhost/w3m -dump http://localhost:8081/example.com/home/index
 
 .PHONY: check
 check: 
