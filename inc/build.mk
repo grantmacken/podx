@@ -9,7 +9,7 @@ Origin = $(patsubst build-%,%,$1)
 build-images: alpine-base-images node-alpine-images build-openresty build-xq ## buildah build all images
 
 .PHONY: alpine-base-images
-alpine-base-images: build-alpine build-w3m build-cmarkd podx-zopfli build-magick 
+alpine-base-images: build-alpine build-w3m build-cmark podx-zopfli build-magick 
 .PHONY: node-alpine-images
 node-alpine-images: build-cssnano build-webpack
 #  - build-w3m
