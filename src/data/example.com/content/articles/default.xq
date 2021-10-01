@@ -6,7 +6,11 @@ function( $map) {
         attribute http-equiv { "Content-Type"},
         attribute content { "text/html; charset=UTF-8"}
         },
-      element title { $map?title },
+      (if ( $map => map:contains('title') ) then 
+        element title { $map?title }
+       else 
+        element title { $map?collection-title }
+      ),
       if ( $map => map:contains('summary') ) then 
       element meta {
         attribute name { 'description' },
@@ -24,7 +28,7 @@ function( $map) {
       }
     },
     element body {
-			element h1 {  $map?title },
+			element header {},
 			element main { $map?content/node() },
       element footer {
         attribute title { 'page footer' },

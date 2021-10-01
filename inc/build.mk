@@ -6,7 +6,16 @@ Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-images
-build-images: build-magick build-webpack build-openresty build-xq ## buildah build all images
+build-images: alpine-base-images node-alpine-images build-openresty build-xq ## buildah build all images
+
+.PHONY: alpine-base-images
+alpine-base-images: build-alpine build-w3m build-cmark build-zopfli build-magick 
+.PHONY: node-alpine-images
+node-alpine-images: build-cssnano build-webpack
+#  - build-w3m
+#  - build-cmark
+#  - build-zopfli
+#  - build-magick
 
 ########################
 # from base alpine:
@@ -50,7 +59,7 @@ ifdef GITHUB_ACTIONS
 endif
 
 .PHONY: build-w3m
-build-w3m: build-alpine ## buildah build $(call Origin,$@) 
+build-w3m: ## buildah build $(call Origin,$@) 
 	@CONTAINER=$$(buildah from localhost/alpine)
 	@buildah run $${CONTAINER} apk add --no-cache $(call Origin,$@)
 	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
@@ -69,12 +78,26 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_W3M_VER)
 endif
 
+# https://github.com/commonmark/cmark/releases
 .PHONY: build-cmark
-build-cmark: build-w3m ## buildah build w3m
+build-cmark: ## buildah build cmark - built with cmark release tar
 	@CONTAINER=$$(buildah from localhost/alpine)
-	@buildah run $${CONTAINER} apk add --no-cache cmark
+	@buildah run $${CONTAINER} /bin/sh -c \
+		'apk add --virtual .build-deps build-base cmake \
+		&& cd /home \
+		&& wget -O cmark.tar.gz https://github.com/commonmark/cmark/archive/$(GHPKG_CMARK_VER).tar.gz \
+		&& tar -C /tmp -xf ./cmark.tar.gz \
+    && cd /tmp/cmark-$(GHPKG_CMARK_VER) \
+    && cmake \
+    && make install \
+    && cd /home \
+    && rm -f ./cmark.tar.gz \
+    && rm -r /tmp/cmark-$(GHPKG_CMARK_VER) \
+    && apk del .build-deps \
+		'
+	@buildah run $${CONTAINER} ls -alR /home
 	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '["/usr/bin/cmark"]' $${CONTAINER}
+	@buildah config --entrypoint '["/usr/local/bin/cmark"]' $${CONTAINER}
 	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
 	@buildah config --label org.opencontainers.image.title='alpine based $(call Origin,$@) image' $${CONTAINER} # title
 	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
@@ -83,15 +106,36 @@ build-cmark: build-w3m ## buildah build w3m
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
 	@buildah config --label org.opencontainers.image.version='$(GHPKG_CMARK_VER)' $${CONTAINER} # version
-	@buildah config --cmd '' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
 ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
 endif
 
+.PHONY: xxx
+xxx:
+	@buildah run $${CONTAINER} apk add --virtual .build-deps build-base cmake
+	@buildah run $${CONTAINER} cd /tmp/cmark-$(CMARK_RELEASE_VER) && cmake && make install
+	@buildah run $${CONTAINER} cd /home && rm -f ./cmark.tar.gz && rm -r /tmp/cmark-$(CMARK_RELEASE_VER)
+	@buildah run $${CONTAINER} apk del .build-deps
+	@buildah config --cmd '' $${CONTAINER}
+	@buildah config --entrypoint '["/usr/local/bin/cmark"]' $${CONTAINER}
+	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
+	@buildah config --label org.opencontainers.image.title='alpine based $(call Origin,$@) image' $${CONTAINER} # title
+	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
+	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	@buildah config --label org.opencontainers.image.version='$(CMARK_RELEASE_VER)' $${CONTAINER} # version
+	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(CMARK_RELEASE_VER)
+ifdef GITHUB_ACTIONS
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(CMARK_RELEASE_VER)
+endif
+
 .PHONY: build-zopfli
-build-zopfli: build-cmark ## buildah build zopfli
+build-zopfli: ## buildah build zopfli
 	@CONTAINER=$$(buildah from localhost/alpine)
 	@buildah run $${CONTAINER} apk add --no-cache zopfli
 	@buildah run $${CONTAINER} sh -c 'echo "#!/bin/sh -l" > /home/stdin-zopfli' 
@@ -119,7 +163,7 @@ ifdef GITHUB_ACTIONS
 endif
 
 .PHONY: build-magick
-build-magick: build-zopfli ## buildah build imagemagick
+build-magick: ## buildah build imagemagick
 	@CONTAINER=$$(buildah from localhost/alpine )
 	@buildah run $${CONTAINER} apk add --no-cache imagemagick
 	@buildah run $${CONTAINER} mkdir -p /opt/proxy/html/images
@@ -169,7 +213,7 @@ ifdef GITHUB_ACTIONS
 endif
 
 .PHONY: build-webpack
-build-webpack: build-cssnano ## buildah build webpack
+build-webpack: ## buildah build webpack
 	@CONTAINER=$$(buildah from docker.io/node:alpine$(FROM_ALPINE_VER))
 	@buildah run $${CONTAINER} npm install -g webpack webpack-cli
 	@buildah run $${CONTAINER} mkdir -p -v /opt/proxy/html

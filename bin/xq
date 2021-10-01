@@ -85,11 +85,18 @@ local:store( $(cat $srcFile ), '$uri' ),
   elif echo ${ext} | grep -oP '^(md)$' &>/dev/null
     then
       local uri="http://${dirName}/$res.cmark"
-      local cmark_xml=$( cat $srcFile | \
-      podman run --rm  --interactive ${CMARK_IMG} --to xml --validate-utf8 --smart | \
-      sed -e '1,2d')
-     # --sourcepos  --validate-utf8 --smart
-     podman exec xq xqerl escript bin/scripts/run2.escript store.xq "$base" "${cmark_xml}"
+      local cmark_xml="$( cat $srcFile | \
+      podman run --rm  --interactive ${CMARK_IMG} --to xml --validate-utf8 --safe --smart 2>/dev/null | \
+      sed -e '1,2d')"
+      cmdQuery \
+"declare %updating 
+function local:store( \$item , \$uri){ db:put( \$item, \$uri ) }; 
+try {(
+local:store( '$cmark_xml' => parse-xml() , '$uri' ), 
+\`\`[ - ok: stored into db
+- XDM item - document-node():  \`{ db:get( '$uri' ) instance of document-node()  }\`
+- xqerl database location: $uri ]\`\`
+)} catch * {' error: failed to store function item [ $srcFile ]'}"
   elif echo ${ext} | grep -oP '^(html)$' &>/dev/null
     then
       local tidy_img='podman.pkg.github.com/grantmacken/alpine-htmltidy/htmltidy5:5.7.28'
