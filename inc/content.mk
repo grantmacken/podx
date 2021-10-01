@@ -3,25 +3,14 @@
 ###########################
 MarkdownList  :=  $(wildcard src/data/*/content/*/*.md)
 TemplateList  :=  $(wildcard src/data/*/content/*/*.xq)
-DataMapList      :=  $(wildcard src/data/*/content/*/*.json)
+DataMapList      :=  $(wildcard src/data/*/content/*/*.json) $(wildcard src/data/*/content/*.json)
 
 BuildMarkdown := $(patsubst src/%.md,build/%.cmark.txt,$(MarkdownList))
 BuildTemplate := $(patsubst src/%.xq,build/%.tpl.txt,$(TemplateList))
 BuildDataMap  := $(patsubst src/%.json,build/%.map.txt,$(DataMapList))
-BuiltHTML     := $(patsubst build/data/%.cmark.txt,build/html/%.html,$(BuildMarkdown))
 # build/html/%.html: build/data/%.cmark.txt
 PHONY: content
 content: $(BuildTemplate) $(BuildDataMap) $(BuildMarkdown)
-
-# $(BuildMarkdown) $(BuildDataMap) $(BuildTemplate)
-xxxxx:
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '## $(notdir  $@) ##'
-	@echo '## $(dir  $@) ##'
-	@echo 'directory: $(dir $(patsubst build/html/%.html,%,$@))'
-	@#podman run --pod $(POD) --rm --mount $(MountAssets) $(ALPINE) ls -alR .
-	@#podman run --pod $(POD) --rm $(W3M) -dump_source -o accept_encoding='identity;q=0' http://localhost:8081/$(patsubst build/html/%.html,%,$@) |
-	@#cat $@ | podman run --pod $(POD) --rm --interactive $(W3M) -T text/html -dump
 
 PHONY: content-tar
 content-tar: deploy deploy/xqerl-database.tar
@@ -52,6 +41,10 @@ watch-content-view:
 content-clean:
 	@echo '## $(@) ##'
 	@rm -v $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap) || true
+	@#TODO content items belong to a db URI collection  e.g. http://example.com/content
+	@# delete the db URI and all the content data is removed
+	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
+	@bin/xq delete collection $${domain}/content
 
 .PHONY: content-list
 content-list:

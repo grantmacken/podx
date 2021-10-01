@@ -1,0 +1,8 @@
+{
+  "domain": "example.com",
+  "site-title": "my example site",
+  "site-description": "my site description",
+  "site-author": "Grant Mackenzie",
+  "collections": ["articles"],
+  "categories": ["docker","podman"]
+}

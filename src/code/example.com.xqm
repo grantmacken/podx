@@ -23,26 +23,52 @@ function _:collection-item( $sCollection, $sItem ){
   let $pubURL       := string-join(($_:pubBase,$sCollection,$sItem),'/' )
   let $dbCollection := string-join(($_:dbBase,$sCollection),'/' )
   let $dbItemList := $dbCollection => fn:uri-collection()
-  
+  let $resMap := map { 
+  "collection" : $sCollection,
+  "item" : $sCollection,
+  'db-collection' : $dbCollection,
+  'uri' : $pubURL
+  }
   let $dbCmark       := string-join(($_:dbBase,$sCollection,$sItem || '.cmark'),'/' )
   let $hasCmark := $dbCmark = ($dbItemList)
-  let $pageContentMap := if( $hasCmark ) then ( 
+  let $contentMap := if( $hasCmark ) then ( 
     (: create map with map constructor :)
      map{ 'content':   $dbCmark => db:get() => cm:dispatch() }
   ) else ( map {} )
 
+  (: the site data map - site wide data :)
+  let $dbSiteData := string-join(($_:dbBase,'site.map'),'/' )
+  let $siteMap :=  try{$dbSiteData => db:get()} catch * { map {} }
+
+ (: the collection data map - data for all items in collection :)
+  let $dbCollectionData := string-join(($_:dbBase,$sCollection,'default.map'),'/' )
+  let $hasCollectionData := $dbCollectionData = ($dbItemList)
+  let $collectionMap := if( $hasCollectionData ) then ( $dbCollectionData => db:get() ) else ( map {} )
+
+ (: the page data map - data for a single page:)
   let $dbPageData := string-join(($_:dbBase,$sCollection,$sItem || '.map'),'/' )
   let $hasPageData := $dbPageData = ($dbItemList)
-  let $pageDataMap := if( $hasPageData ) then ( $dbPageData => db:get() ) else ( map {} )
+  let $pageMap := if( $hasPageData ) then ( $dbPageData => db:get() ) else ( map {} )
 
-  let $dbTemplate := string-join(($_:dbBase,$sCollection, $sItem || '.tpl'),'/' )
-  let $hasTemplate := $dbTemplate = ($dbItemList)
-  let $tplFunction := if( $hasTemplate ) then ( $dbTemplate => db:get() ) else ()
-
+  let $dbCollectionTemplate := string-join(($_:dbBase,$sCollection, 'default.tpl'),'/' )
+  let $dbCollectionIndexTemplate := string-join(($_:dbBase,$sCollection, 'default.tpl'),'/' )
+  let $tplFunction := 
+  if ( string-join(($_:dbBase,$sCollection, $sItem,'.tpl'),'/' ) = ($dbItemList)) 
+  then (  (: there is a template named after the item e.g, index.tpl :)
+   string-join(($_:dbBase,$sCollection, $sItem,'.tpl'),'/' ) => db:get()
+   ) 
+  else ( 
+    if ( string-join(($_:dbBase,$sCollection, 'default.tpl'),'/' ) = ($dbItemList)) 
+    then (  (: get the collections default template :)
+     string-join(($_:dbBase,$sCollection, 'default.tpl'),'/' ) => db:get()
+     )
+    else ( string-join(($_:dbBase, 'default.tpl'),'/' ) => db:get())
+  )
+ 
   (: TODO  merge maps :)
   return(
   _:status( 200, 'OK', 'text/html'),
-  map:merge(( $pageContentMap, $pageDataMap ))  => $tplFunction() 
+  map:merge(( $resMap, $siteMap, $collectionMap, $pageMap, $contentMap ))  => $tplFunction() 
 )} catch * {(
   map { 'code' : $err:code,
         'description' : $err:description,
