@@ -1,0 +1,18 @@
+name: podx builds
+on:
+  push:
+    branches: reverse-proxy*
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: podman pull our images
+        run: make pods-pull
+      - name: podman create our volumes for podx
+        run: make volumes
+      - name: create self signed certs
+        run: make certs-create-self-signed
