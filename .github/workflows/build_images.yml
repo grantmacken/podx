@@ -17,4 +17,4 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: buildah images
-        run: make build-cmark
+        run: make build-alpine build-cmark
