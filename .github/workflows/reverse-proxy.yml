@@ -1,0 +1,32 @@
+name: podx builds
+on:
+  push:
+    branches: reverse-proxy*
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: podman pull our images
+        run: make pods-pull
+      - name: podman create our volumes for podx
+        run: make volumes
+      - name: self signed certs inserted into certs volume
+        run: make certs-create-self-signed
+      - name: nginx conf files inserted into proxy-conf volume
+        run: |
+          make confs
+          make confs-list
+      - name: start running containers in the pod name podx
+        run: |
+          make podx
+          make xq
+          make or
+      - name: some podx checks
+        run: |
+          echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
+          openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > example.pem
+          curl --cacert example.pem https://example.com:8443

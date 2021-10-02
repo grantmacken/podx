@@ -20,7 +20,6 @@ CURL := docker.io/curlimages/curl:latest
 XQ        := ghcr.io/grantmacken/podx-xq:$(GHPKG_XQ_VER)
 OR        := ghcr.io/grantmacken/podx-or:$(GHPKG_OR_VER)
 
-
 PROXY_IMAGE=proxy
 # OPM_IMAGE=$(GHPKG_REGISTRY)/$(REPO_OWNER)/$(PROXY_NAME):opm-$(PROXY_VER)
 #RESTY_IMAGE=$(GHPKG_REGISTRY)/$(REPO_OWNER)/$(PROXY_NAME):resty-$(PROXY_VER)
@@ -51,8 +50,14 @@ include inc/*.mk
 #CURL := docker run --pod $(POD) --rm --interactive  $(CURL_IMAGE) $(CONNECT_TO)
 
 .PHONY: crl
-crl: 
-	podman run --pod $(POD) --rm --interactive  $(CURL) -v http://localhost:8081/example.com/content/home/index
+crl:
+	@$(DASH)
+	@curl -vkL http://example.com:8080 || true
+	@$(DASH)
+	@curl -vk https://example.com:8443 || true
+	@$(DASH)
+	@#openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p'
+	@#podman run --pod $(POD) --rm --interactive  $(CURL) -v http://localhost:8081/example.co
 	#podman run --pod $(POD) --rm -it  localhost/w3m -dump_extra http://localhost:8081/example.com/home/index
 	#podman run --pod $(POD) --rm -it  localhost/w3m -dump http://localhost:8081/example.com/home/index
 
@@ -64,17 +69,16 @@ check:
 	@#w3m -dump_head http://example.com:8080
 	@#$(DASH) && echo
 	@#w3m -dump https://example.com:8443
-	@#curl -vk https://example.com:8443 || true
 	@#$(DASH) && echo
 	@#$(DASH) && echo
-	@#curl -vkL http://example.com:8080 || true
+	@curl -v http://example.com:8080 || true
 	@#$(DASH) && echo
 	@#openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > example.pem
 	@#curl --cacert example.pem https://example.com:8443
 	@#w3m -dump https://example.com:8443
-	@echo && $(DASH)
-	@w3m -dump -o ssl_verify_server=false https://example.com:8443
-	@$(DASH)
-	@w3m -dump_both -o ssl_verify_server=false https://example.com:8443
+	@#echo && $(DASH)
+	@#w3m -dump -o ssl_verify_server=false https://example.com:8443
+	@#$(DASH)
+	@#w3m -dump_both -o ssl_verify_server=false https://example.com:8443
 	@$(DASH)
 

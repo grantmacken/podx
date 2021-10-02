@@ -70,11 +70,18 @@ xq-down: code-clean
 
 .PHONY: or # in podx listens on 80/tcp port. As podx exposes that port as 8080/tcp in the host, you can reach the app
 or: 
-	@echo "#(: $(@) :)#"
-	@podman pod exists $(@) || podman run --pod $(POD) \
+	@echo "##[ $(@) ]##"
+	@podman run --pod $(POD) \
     --mount $(MountCerts) --mount $(MountProxyConf) --mount $(MountAssets) \
 		--name $(@) \
-    --detach $(PROXY_IMAGE)
+    --detach $(OR)
+	@podman ps -a --pod
+
+.PHONY: or-down
+or-down:
+	@echo "##[ $(@) ]##"
+	@podman stop or || true
+	@podman rm or || true
 
 .PHONY: pods-clean
 pods-clean:
