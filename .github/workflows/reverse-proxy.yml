@@ -17,7 +17,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: buildah images
+        run: make build-images
       - name: podman create our volumes for podx
         run: make volumes
-      - name: create self signed certs
+      - name: self signed certs inserted into certs volume
         run: make certs-create-self-signed
+      - name: nginx conf files inserted into proxy-conf volume
+        run: make confs
