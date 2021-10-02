@@ -25,12 +25,12 @@ confs-clean:
 .PHONY: confs-list
 confs-list:
 	@echo '## $(@) ##'
-	@podman run --pod $(POD) --interactive --rm  --mount $(MountProxyConf) --entrypoint "sh" $(OPENRESTY) \
+	@podman run --interactive --rm  --mount $(MountProxyConf) --entrypoint "sh" $(OPENRESTY) \
 		-c 'ls -al /opt/proxy/conf'
 	@echo ' - also check the certs volume'
-	@podman run --pod $(POD) --interactive --rm  --mount $(MountProxyConf) --entrypoint "sh" $(OPENRESTY) \
+	@podman run --interactive --rm  --mount $(MountProxyConf) --entrypoint "sh" $(OPENRESTY) \
 		-c 'cat /opt/proxy/conf/self-signed.conf'
-	@podman run --pod $(POD) --interactive --rm  --mount $(MountCerts) --entrypoint "sh" $(OPENRESTY) \
+	@podman run  --interactive --rm  --mount $(MountCerts) --entrypoint "sh" $(OPENRESTY) \
 		-c 'ls -al /opt/proxy/certs'
 
 build/proxy/conf/%.conf: src/proxy/conf/%.conf
@@ -42,7 +42,7 @@ build/proxy/conf/%.conf: src/proxy/conf/%.conf
 		 -c 'cat /opt/proxy/conf/$(notdir $<) 2>/dev/null || echo ""' > $@
 	@cat $< | podman run --interactive --rm  --mount $(MountProxyConf) --entrypoint "sh" $(OPENRESTY) \
 		 -c 'cat - > /opt/proxy/conf/$(notdir $<)'
-	@podman run --pod $(POD) --interactive --rm  --mount $(MountProxyConf) --mount $(MountCerts) --entrypoint "sh" $(OPENRESTY) \
+	@podman run --interactive --rm  --mount $(MountProxyConf) --mount $(MountCerts) --entrypoint "sh" $(OPENRESTY) \
 		 -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t'
 
 build/proxy/conf/mime.types: src/proxy/conf/mime.types

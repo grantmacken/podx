@@ -24,3 +24,8 @@ jobs:
         run: make certs-create-self-signed
       - name: nginx conf files inserted into proxy-conf volume
         run: make confs
+      - name: start podx
+        run: |
+          make podx
+          make xq
+          make or
