@@ -74,7 +74,14 @@ or:
 	@podman run --pod $(POD) \
     --mount $(MountCerts) --mount $(MountProxyConf) --mount $(MountAssets) \
 		--name $(@) \
-    --detach $(PROXY_IMAGE)
+    --detach $(OR)
+	@podman ps -a --pod
+
+.PHONY: or-down
+or-down:
+	@echo "##[ $(@) ]##"
+	@podman stop or || true
+	@podman rm or || true
 
 .PHONY: pods-clean
 pods-clean:

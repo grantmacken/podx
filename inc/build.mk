@@ -6,7 +6,7 @@ Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-images
-build-images: alpine-base-images node-alpine-images build-openresty build-xq ## buildah build all images
+build-images: alpine-base-images node-alpine-images build-openresty build-or build-xq ## buildah build all images
 
 .PHONY: alpine-base-images
 alpine-base-images: build-alpine build-w3m build-cmark build-zopfli build-magick 
@@ -112,27 +112,6 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
 endif
 
-.PHONY: xxx
-xxx:
-	@buildah run $${CONTAINER} apk add --virtual .build-deps build-base cmake
-	@buildah run $${CONTAINER} cd /tmp/cmark-$(CMARK_RELEASE_VER) && cmake && make install
-	@buildah run $${CONTAINER} cd /home && rm -f ./cmark.tar.gz && rm -r /tmp/cmark-$(CMARK_RELEASE_VER)
-	@buildah run $${CONTAINER} apk del .build-deps
-	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '["/usr/local/bin/cmark"]' $${CONTAINER}
-	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
-	@buildah config --label org.opencontainers.image.title='alpine based $(call Origin,$@) image' $${CONTAINER} # title
-	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
-	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
-	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
-	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
-	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version='$(CMARK_RELEASE_VER)' $${CONTAINER} # version
-	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(CMARK_RELEASE_VER)
-ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(CMARK_RELEASE_VER)
-endif
 
 .PHONY: build-zopfli
 build-zopfli: ## buildah build zopfli
@@ -282,19 +261,17 @@ build-openresty: ## buildah build: openresty as base build for podx
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
 	@buildah config --label org.opencontainers.image.version='$(FROM_OPENRESTY_VER)' $${CONTAINER} # version
-	@echo ' - check new conf file ... /opt/proxy/conf/base.conf'
-	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/base.conf -t' || true
 	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/base.conf", "-g", "daemon off;"]' $${CONTAINER}
+	@buildah config --entrypoint '[ "openresty"]' $${CONTAINER}
 	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_OPENRESTY_VER)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/grantmacken/$(call Build,$@):$(FROM_OPENRESTY_VER)
 ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(FROM_OPENRESTY_VER)
+	@buildah push ghcr.io/grantmacken/$(call Build,$@):$(FROM_OPENRESTY_VER)
 endif
 
-.PHONY: build-proxy
-build-proxy: ## buildah build: openresty as a reverse proxy container
+.PHONY: build-or
+build-or: ## buildah build: openresty as a reverse proxy container
 	@CONTAINER=$$(buildah from localhost/openresty )
 	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-openresty:$(FROM_OPENRESTY_VER) $${CONTAINER} # image is built FROM
 	@buildah config --label org.opencontainers.image.title='or a reverse-proxy and cache nginx server' $${CONTAINER} # title
@@ -304,16 +281,16 @@ build-proxy: ## buildah build: openresty as a reverse proxy container
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
 	@buildah config --label org.opencontainers.image.version='$(GHPKG_OR_VER)' $${CONTAINER} # version
-	@# TODO add certs and set up example.com
-	@echo ' - check new conf file ... /opt/proxy/conf/base.conf'
-	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/base.conf -t' || true
+	@# TODO tar conf files
+	@echo ' - tar '
+	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t' || true
 	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/base.conf", "-g", "daemon off;"]' $${CONTAINER}
+	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/reverse_proxy.conf", "-g", "daemon off;"]' $${CONTAINER}
 	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/grantmacken/$(call Build,$@):$(GHPKG_OR_VER)
 ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_OR_VER)
+	@buildah push ghcr.io/grantmacken/$(call Build,$@):$(GHPKG_OR_VER)
 endif
 
 # https://github.com/postcss/postcss-cli
