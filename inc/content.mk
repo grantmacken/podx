@@ -10,7 +10,7 @@ BuildTemplate := $(patsubst src/%.xq,build/%.tpl.txt,$(TemplateList))
 BuildDataMap  := $(patsubst src/%.json,build/%.map.txt,$(DataMapList))
 # build/html/%.html: build/data/%.cmark.txt
 PHONY: content
-content: $(BuildMarkdown) # $(BuildTemplate) $(BuildDataMap)
+content: $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap)
 PHONY: content-tar
 content-tar: deploy deploy/xqerl-database.tar
 
