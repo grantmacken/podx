@@ -22,7 +22,7 @@ watch-content:
         inotifywait -qre close_write ./src/data/$(DOMAIN)/content/ || true; \
     done
 
-CONTENT := home/index
+CONTENT := home/articles/reverse-proxy-setup
 
 PHONY: content-view
 content-view:
@@ -53,17 +53,24 @@ content-list:
 
 build/data/%.cmark.txt: src/data/%.md
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@[ -d .tmp ] || mkdir -p .tmp
 	@echo '## $(notdir  $<) ##'
 	@bin/xq put $< | tee $@
-	@URI=http://localhost:8081/$(patsubst src/data/%.md,%,$<)
-	@echo "Page URL: $$URI"
+	@POD_URI=http://localhost:8081/$(patsubst src/data/%.md,%,$<)
+	@echo "Internal Pod Page URL: $$POD_URI"
 	@#podman run --pod $(POD) --rm $(W3M) -dump_source -o accept_encoding='identity;q=0' $$URI
 	@$(DASH)
-	@podman run --pod $(POD) --rm $(W3M) -dump $$URI
+	@podman run --pod $(POD) --rm $(W3M) -dump $$POD_URI
 	@echo && $(DASH)
-	@#podman run --pod $(POD) --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(patsubst src/data/%/$(notdir $<),%,$<)
-	@#podman run --pod $(POD) --rm --mount $(MountAssets) $(ALPINE) ls -alR .
-
+	@[ -e .tmp/example.com.pem ] \
+    || openssl s_client -showcerts -connect example.com:8443 </dev/null \
+		| sed -n -e '/-.BEGIN/,/-.END/ p' > .tmp/example.com.pem
+	@#curl -v --cacert .tmp/example.com.pem https://example.com:8443/$(patsubst src/data/example.com/content/%.md,%,$<)
+	@$(DASH)
+	@curl  -s -D - -o /dev/null --cacert .tmp/example.com.pem https://example.com:8443/$(patsubst src/data/example.com/content/%.md,%,$<)
+	@$(DASH)
+	@echo https://example.com:8443/$(patsubst src/data/example.com/content/%.md,%,$<)
+	@$(DASH)
 
 build/data/%.map.txt: src/data/%.json
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)

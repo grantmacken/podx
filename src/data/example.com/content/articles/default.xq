@@ -34,14 +34,14 @@ function( $map) {
         attribute title { 'page footer' },
         attribute role  { 'contentinfo' },
         element a {
-          attribute href { 'https://' || $map?domain },
-          $map?domain,
-          ' - a website owned, authored and operated by&#8239;' ,
-          element a {
-            attribute href { $map?uri },
-            attribute title {'author'},
-            $map?site-author
-          }
+          attribute href { '/' },
+          $map?domain
+          },
+        ' - a website owned, authored and operated by&#8239;' ,
+        element a {
+          attribute href { '/' },
+          attribute title {'author'},
+          $map?site-author
         }
       }
     }
