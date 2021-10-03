@@ -11,7 +11,7 @@ jobs:
         with:
           fetch-depth: 1
       - name: podman pull our images
-        run: make pods-pull
+        run: make pods-pull-essential
       - name: podman create our volumes for podx
         run: make volumes
       - name: self signed certs inserted into certs volume
@@ -30,4 +30,4 @@ jobs:
           echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
           openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > example.pem
           curl --cacert example.pem https://example.com:8443
-          curl  -s -D - -o /dev/null --cacert .tmp/example.com.pem https://example.com:8443
+          curl  -s -D - -o /dev/null --cacert example.com.pem https://example.com:8443

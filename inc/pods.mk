@@ -15,6 +15,12 @@ pods: vol podx xq or
 	@podman pod list
 	@podman ps -a --pod
 
+.PHONY: pods-pull-essential
+pods-pull-essential:
+	@podman pull $(OPENRESTY)
+	@podman pull $(OR)
+	@podman pull $(XQ)
+
 .PHONY: pods-pull
 pods-pull:
 	@podman pull $(ALPINE)
