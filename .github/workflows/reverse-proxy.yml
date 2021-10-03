@@ -24,6 +24,8 @@ jobs:
         run: |
           make podx
           make xq
+          echo 'add "content" data into database'
+          make content
           make or
       - name: some podx checks
         run: |
