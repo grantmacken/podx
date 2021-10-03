@@ -10,23 +10,26 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
+      - name: add example.com to hosts file
+        run: echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
       - name: podman pull our images
-        run: make pods-pull
+        run: make pods-pull-essential
       - name: podman create our volumes for podx
         run: make volumes
-      - name: self signed certs inserted into certs volume
+      - name: create the podx pod
+        run: make podx
+      - name: start xq running in the podx pod
+        run: make xq
+      - name: insert data content for example.com into xqerl-database
+        run: make content
+      - name: insert self signed certs into certs volume
         run: make certs-create-self-signed
-      - name: nginx conf files inserted into proxy-conf volume
+      - name: insert nginx conf files into proxy-conf volume
+        run: make confs
+      - name: start running reverse-proxy in the pod name podx
+        run: make or
+      - name: check site is reachable over port 443
         run: |
-          make confs
-          make confs-list
-      - name: start running containers in the pod name podx
-        run: |
-          make podx
-          make xq
-          make or
-      - name: some podx checks
-        run: |
-          echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
-          openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > example.pem
-          curl --cacert example.pem https://example.com:8443
+          openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > example.com.pem
+          curl --cacert example.com.pem https://example.com:8443
+          curl -s -D - -o /dev/null --cacert example.com.pem https://example.com:8443

@@ -76,12 +76,17 @@ function dbFilePut() {
     cmdQuery \
 "declare %updating 
 function local:store( \$item , \$uri){ db:put( \$item, \$uri ) }; 
-try {(
-local:store( $(cat $srcFile ), '$uri' ), 
-\`\`[ - ok: stored into db
- - XDM item:  function
- - location: $uri ]\`\`
-)} catch * {' error: failed to store function item [ $srcFile ]'}"
+try {
+let \$func := $(cat $srcFile)
+return
+if (\$func instance of function(*))
+then (
+local:store( \$func , '$uri' ), 
+\`\`[ - OK: stored into db
+ - XDM item: function(*)
+ - db location: $uri ]\`\` )
+else (' error: failed to store function item [ $srcFile ]')
+} catch * {' error: failed to store function item [ $srcFile ]'}"
   elif echo ${ext} | grep -oP '^(md)$' &>/dev/null
     then
       local uri="http://${dirName}/$res.cmark"
@@ -91,12 +96,17 @@ local:store( $(cat $srcFile ), '$uri' ),
       cmdQuery \
 "declare %updating 
 function local:store( \$item , \$uri){ db:put( \$item, \$uri ) }; 
-try {(
-local:store( '$cmark_xml' => parse-xml() , '$uri' ), 
+try {
+let \$x := '$cmark_xml' => parse-xml()
+return
+if (\$x instance of document-node())
+then (
+local:store( \$x, '$uri' ), 
 \`\`[ - ok: stored into db
-- XDM item - document-node():  \`{ db:get( '$uri' ) instance of document-node()  }\`
-- xqerl database location: $uri ]\`\`
-)} catch * {' error: failed to store function item [ $srcFile ]'}"
+- XDM item: document-node()
+- db location: $uri ]\`\`)
+else (' error: failed to store function item [ $srcFile ]')
+} catch * {' error: failed to store function item [ $srcFile ]'}"
   elif echo ${ext} | grep -oP '^(html)$' &>/dev/null
     then
       local tidy_img='podman.pkg.github.com/grantmacken/alpine-htmltidy/htmltidy5:5.7.28'
