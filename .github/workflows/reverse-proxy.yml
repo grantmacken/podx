@@ -30,6 +30,7 @@ jobs:
         run: make confs
       - name: start running reverse-proxy in the pod name podx
         run: make or
+      - name: check site is reachable over port 443
         run: |
           openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > example.pem
           curl --cacert example.pem https://example.com:8443
