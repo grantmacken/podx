@@ -22,17 +22,14 @@ jobs:
         run: podman ps --all --pod
       - name: insert data content for example.com into xqerl-database
         run: make content
+      - name: add example.com to hosts file
+        run: echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
       - name: insert self signed certs into certs volume
-        run: |
-          echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
-          make certs-create-self-signed
+        run: make certs-create-self-signed
       - name: insert nginx conf files into proxy-conf volume
-        run: |
-          make confs
-          make confs-list
-      - name: start running containers in the pod name podx
+        run: make confs
+      - name: start running reverse-proxy in the pod name podx
         run: make or
-          make or
         run: |
           openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > example.pem
           curl --cacert example.pem https://example.com:8443
