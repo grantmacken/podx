@@ -56,6 +56,7 @@ build/data/%.cmark.txt: src/data/%.md
 	@[ -d .tmp ] || mkdir -p .tmp
 	@echo '## $(notdir  $<) ##'
 	@bin/xq put $< | tee $@
+ifndef GITHUB_ACTIONS
 	@POD_URI=http://localhost:8081/$(patsubst src/data/%.md,%,$<)
 	@echo "Internal Pod Page URL: $$POD_URI"
 	@#podman run --pod $(POD) --rm $(W3M) -dump_source -o accept_encoding='identity;q=0' $$URI
@@ -65,12 +66,12 @@ build/data/%.cmark.txt: src/data/%.md
 	@[ -e .tmp/example.com.pem ] \
     || openssl s_client -showcerts -connect example.com:8443 </dev/null \
 		| sed -n -e '/-.BEGIN/,/-.END/ p' > .tmp/example.com.pem
-	@#curl -v --cacert .tmp/example.com.pem https://example.com:8443/$(patsubst src/data/example.com/content/%.md,%,$<)
 	@$(DASH)
 	@curl  -s -D - -o /dev/null --cacert .tmp/example.com.pem https://example.com:8443/$(patsubst src/data/example.com/content/%.md,%,$<)
 	@$(DASH)
 	@echo https://example.com:8443/$(patsubst src/data/example.com/content/%.md,%,$<)
 	@$(DASH)
+endif
 
 build/data/%.map.txt: src/data/%.json
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
