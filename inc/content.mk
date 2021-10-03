@@ -10,8 +10,7 @@ BuildTemplate := $(patsubst src/%.xq,build/%.tpl.txt,$(TemplateList))
 BuildDataMap  := $(patsubst src/%.json,build/%.map.txt,$(DataMapList))
 # build/html/%.html: build/data/%.cmark.txt
 PHONY: content
-content: $(BuildTemplate) $(BuildDataMap) $(BuildMarkdown)
-
+content: $(BuildMarkdown) # $(BuildTemplate) $(BuildDataMap)
 PHONY: content-tar
 content-tar: deploy deploy/xqerl-database.tar
 
@@ -56,6 +55,9 @@ build/data/%.cmark.txt: src/data/%.md
 	@[ -d .tmp ] || mkdir -p .tmp
 	@echo '## $(notdir  $<) ##'
 	@bin/xq put $< | tee $@
+	@grep -q 'XDM item: document-node' $@
+
+xcxcxcxxc:
 ifndef GITHUB_ACTIONS
 	@POD_URI=http://localhost:8081/$(patsubst src/data/%.md,%,$<)
 	@echo "Internal Pod Page URL: $$POD_URI"
@@ -77,11 +79,13 @@ build/data/%.map.txt: src/data/%.json
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir  $<) ##'
 	@bin/xq put $< | tee $@
+	@grep -q 'XDM item: map' $@
 
 build/data/%.tpl.txt: src/data/%.xq
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir  $<) ##'
 	@bin/xq put $< | tee $@
+	@grep -q 'XDM item: function' $@
 
 deploy/xqerl-database.tar:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
