@@ -17,6 +17,8 @@ pods: vol podx xq or
 
 .PHONY: pods-pull-essential
 pods-pull-essential:
+	@podman pull $(ALPINE)
+	@podman pull $(CMARK)
 	@podman pull $(OPENRESTY)
 	@podman pull $(OR)
 	@podman pull $(XQ)
