@@ -1,0 +1,106 @@
+* {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  /* outline-offset: 0.125em; */
+  /* text-decoration: none; */
+  /* vertical-align: baseline; */
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+html {
+  /* height: 100%; */
+  border-collapse: collapse;
+}
+
+body {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+/* FLEX ITEM */
+header[role=banner] {
+  /* flex child item */
+  min-height: 10vh;
+  /* flex-grow: 1; */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+/* COLLUMN FLEX ITEM */
+nav.nl {
+  min-height: 5vh;
+  /* flex item properties */
+  width: 100%;
+  flex-grow: 0;
+  flex-shrink: 0;
+  /* order: 0; */
+  /* display: flex; */
+  /* justify-content: space-between; */
+  /* align-items: center; */
+
+  /* display children as */
+  display: flex;
+  flex-wrap: wrap;
+  --modifier: calc(33rem - 100%);
+}
+
+nav.nl > * {
+  max-width: 100%;
+  flex-grow: 1;
+  flex-basis: calc(var(--modifier) * 999);
+  align-self: center;
+}
+
+/* there is only one main */
+main {
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  --modifier: calc(60rem - 100%);
+}
+
+/**
+ * for each item in main
+ * display hozizontally if more than 60 rem
+**/
+main > * {
+  max-width: 100%;
+  flex-grow: 1;
+  flex-basis: calc(var(--modifier) * 999);
+}
+
+main > article {
+  min-width: 75%;
+}
+
+main > aside {
+  margin-top: 0;
+  min-width: 25%;
+  padding-right: 1rem;
+  padding-left: 1rem;
+  }
+
+main > article > * {
+  display: block;
+  max-width: 75%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+footer {
+  margin-top: 0;
+  font-size: smaller;
+  /* display: block; */
+}
+
