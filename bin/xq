@@ -37,6 +37,8 @@ source .env
 
 XQERL_IMAGE=ghcr.io/grantmacken/podx-xqerl:${GHPKG_XQ_VER} 
 CMARK_IMG=ghcr.io/grantmacken/podx-cmark:${GHPKG_CMARK_VER}
+ZOPFLI_IMG=ghcr.io/grantmacken/podx-zopfli:${GHPKG_ZOPFLI_VER}
+CSSNANO_IMG=ghcr.io/grantmacken/podx-cssnano:${GHPKG_CSSNANO_VER}
 
 MountAssets="type=volume,target=${XQERL_HOME}/priv/static/assets,source=static-assets"
 ##################
@@ -161,7 +163,6 @@ function dbLink() {
   else
    die "can not handle [ $ext ] extension"
   fi
-    local zopfli_img="ghcr.io/grantmacken/podx-zopfli:${GHPKG_ZOPFLI_VER}"
   case "${ext}" in
     svg)
     # ICONS
@@ -173,7 +174,7 @@ function dbLink() {
     ## icons asset pipeline
     cat $srcFile | \
     #podman run --rm --interactive ${scour_img} | \
-    podman run --rm --interactive $zopfli_img | \
+    podman run --rm --interactive ${ZOPFLI_IMG | \
     cmdAssetsMount "cat - > $filename"
     ;;
     js)
@@ -184,7 +185,7 @@ function dbLink() {
     local uri="http://$domain/$dirName/$resource.${res_ext}"
     ## scripts asset pipeline
     cat $srcFile | \
-    podman run --rm --interactive $zopfli_img | \
+    podman run --rm --interactive ${ZOPFLI_IMG} | \
     cmdAssetsMount "cat - > $filename"
     ;;
     css)
@@ -193,10 +194,9 @@ function dbLink() {
     local res_ext='css.gz'
     local filename="$XQERL_HOME/priv/static/assets/$dirName/$resource.${res_ext}"
     local uri="http://$domain/$dirName/$resource.${res_ext}"
-    local cssnano_img='podman.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3'
     cat $srcFile | \
-    podman run --rm --init --interactive  ${cssnano_img} 2>/dev/null | \
-    podman run --rm --interactive $zopfli_img | \
+    podman run --rm --init --interactive  ${CSSNANO_IMG} 2>/dev/null | \
+    podman run --rm --interactive ${ZOPFLI_IMG} | \
     cmdAssetsMount "cat - > $filename"
     ;;
     *) 
