@@ -79,6 +79,24 @@ styles-list:
 	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
 	@podman run --rm --mount $(MountAssets) $(ALPINE) ls $${domain}/styles
 
+###############
+###  FONTS  ###
+# these font are in the commons
+# so can be used by any domain
+###############
+
+build/static_assets/%.txt: src/static_assets/%.woff2
+	@echo "##[ $(*).woff2 ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@cat $< | podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
+		'cat - > $(*).woff2'
+	@echo '$(notdir $<)' > $@ 
+
+.PHONY: fonts-list
+fonts-list:
+	@echo '## $(@) ##'
+	@podman run --rm --mount $(MountAssets) $(ALPINE) ls fonts
+
 ################
 ###  IMAGES  ###
 ################
@@ -118,18 +136,6 @@ build/static_assets/scripts/%.txt: src/static_assets/scripts/%.js
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@bin/xq link $(DOMAIN) scripts/$(*).js | tee $@
 
-###############
-###  FONTS  ###
-# these font are in the commons
-# so can be used by any domain
-###############
-
-build/static_assets/fonts/%.txt: src/static_assets/fonts/%.woff2
-	@echo "##[ $(notdir $<) ]##"
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@cat $< | podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' localhost/proxy \
-		'cat - >  $(patsubst src/static_assets/%,html/%,$(<))'
-	@echo '$(notdir $<)' > $@ 
 
 
 #############
@@ -141,7 +147,7 @@ build/static_assets/icons/%.txt: src/static_assets/icons/%.svg
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@bin/xq link $(DOMAIN) icons/$(*).svg | tee $@
 
-deploy/static-assets.tar: styles 
+deploy/static-assets.tar: styles fonts
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo ' - tar the "static-assets" volume into deploy directory'
 	@podman run --interactive --rm --mount $(MountAssets)  \
