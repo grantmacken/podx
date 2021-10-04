@@ -11,7 +11,7 @@ jobs:
         with:
           fetch-depth: 1
       - name: podman pull our images
-        run: make pods-pull
+        run: make pods-pull-essential && make pods-pull-helpers
       - name: podman create our volumes for podx
         run: make volumes
       - name: create the podx pod
@@ -19,4 +19,4 @@ jobs:
       - name: start xq running in the podx pod
         run: make xq
       - name: insert example.com styles into static-assets volume
-        run: echo 'TODO' # make styles
+        run: make styles

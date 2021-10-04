@@ -18,22 +18,18 @@ pods: vol podx xq or
 .PHONY: pods-pull-essential
 pods-pull-essential:
 	@podman pull $(ALPINE)
-	@podman pull $(CMARK)
 	@podman pull $(OPENRESTY)
 	@podman pull $(OR)
 	@podman pull $(XQ)
 
-.PHONY: pods-pull
-pods-pull:
-	@podman pull $(ALPINE)
+.PHONY: pods-pull-helpers
+pods-pull-helpers:
 	@podman pull $(CMARK)
 	@podman pull $(MAGICK)
-	@podman pull $(W3M)
 	@podman pull $(ZOPFLI)
 	@podman pull $(CSSNANO)
 	@podman pull $(WEBPACK)
-	@podman pull $(XQ)
-	@podman pull $(OPENRESTY)
+	@podman pull $(W3M)
 	@podman pull $(CURL)
 	@podman image list
 

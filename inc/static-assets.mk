@@ -2,23 +2,21 @@
 ###  STATIC ASSETS ###
 ######################
 
+DomainStylesList := $(wildcard src/static_assets/*/styles/*.css)
+CommonStylesList := $(wildcard src/static_assets/styles/*.css)
+BuildStyles := $(patsubst src/%,build/%.txt,$(DomainStylesList))
+
 IconsList := $(wildcard src/static_assets/icons/*.svg)
 FontsList := $(wildcard src/static_assets/fonts/*.woff2)
 
 BuildIcons := $(patsubst src/%.svg,build/%.txt,$(IconsList))
 BuildFonts := $(patsubst src/%.woff2,build/%.txt,$(FontsList))
 
-
-DomainStylesList := $(wildcard src/static_assets/$(DOMAIN)/styles/*.css)
-CommonStylesList := $(wildcard src/static_assets/styles/*.css)
-
-DomainBuildStyles := $(patsubst src/%.css,build/%.txt,$(DomainStylesList))
-
 .PHONY: assets
 assets: deploy/static-assets.tar
 
 .PHONY: styles
-styles: $(DomainBuildStyles)
+styles: $(BuildStyles)
 
 .PHONY: fonts
 fonts: $(BuildFonts)
@@ -34,13 +32,9 @@ watch-assets:
 assets-clean:
 	@echo '## $(@) ##'
 	@rm -fv $(BuildIcons)
-	@rm -fv $(DomainBuildStyles)
+	@rm -fv $(BuildStyles)
 	@rm -fv deploy/static-assets.tar
 
-.PHONY: styles-clean
-styles-clean:
-	@echo '## $(@) ##'
-	@rm -fv $(DomainBuildStyles)
 
 .PHONY: assets-check
 assets-check:
@@ -57,6 +51,37 @@ assets-list:
 	@podman run --interactive --rm --mount $(MountAssets) --workdir /opt/proxy/html \
 		localhost/alpine 'ls -alR .'
 
+################
+### STYLES ###
+###  postcss cssnano autoprefix
+################
+build/static_assets/%.css.txt: src/static_assets/%.css
+	@echo "##[ $* ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo $(dir $*)
+	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
+	@cat $< \
+		| podman run --interactive --rm ${CSSNANO} --no-map --use cssnano \
+		| podman run --interactive --rm ${ZOPFLI} \
+		| podman run --interactive --rm  --mount $(MountAssets) --entrypoint "sh" $(ALPINE) \
+	    -c 'cat - > /opt/proxy/html/$(*).css.gz'
+
+.PHONY: styles-clean
+styles-clean:
+	@echo '## $(@) ##'
+	@rm -fv $(BuildStyles)
+	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
+	@podman run --rm --mount $(MountAssets) $(ALPINE) rm -f $${domain}/styles/*
+
+.PHONY: styles-list
+styles-list:
+	@echo '## $(@) ##'
+	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
+	@podman run --rm --mount $(MountAssets) $(ALPINE) ls $${domain}/styles
+
+################
+###  IMAGES  ###
+################
 # https://imagemagick.org/script/command-line-processing.php
 # https://www.smashingmagazine.com/2015/06/efficient-image-resizing-with-imagemagick/
 # TODO https://imagemagick.org/script/magick-script.php
@@ -84,21 +109,6 @@ images:  # TODO
 		-set filename:area '%wx%h' jpg:sample-%[filename:area].jpg'
 	@#podman run --interactive --rm --mount $(MountAssets) localhost/magick ls -l
 	
-################
-### STYLES ###
-###  postcss cssnano autoprefix
-################
-build/static_assets/$(DOMAIN)/styles/%.txt: src/static_assets/$(DOMAIN)/styles/%.css
-	@echo "##[ $* ]##"
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@podman run --interactive --rm  --mount $(MountAssets) --entrypoint "sh" localhost/proxy \
-		-c 'mkdir -p /opt/proxy/html/$(DOMAIN)/styles'
-	@cat $< \
-		| podman run --interactive --rm localhost/cssnano --no-map --use cssnano \
-		| podman run --interactive --rm localhost/zopfli \
-		| podman run --interactive --rm  --mount $(MountAssets) --entrypoint "sh" localhost/proxy \
-		-c 'cat - > /opt/proxy/html/$(DOMAIN)/styles/$(*).css.gz'
-
 ################
 ### SCRIPTS ###
 ### TODO webpack

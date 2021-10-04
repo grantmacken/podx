@@ -174,7 +174,7 @@ function dbLink() {
     ## icons asset pipeline
     cat $srcFile | \
     #podman run --rm --interactive ${scour_img} | \
-    podman run --rm --interactive ${ZOPFLI_IMG | \
+    podman run --rm --interactive ${ZOPFLI_IMG} | \
     cmdAssetsMount "cat - > $filename"
     ;;
     js)
