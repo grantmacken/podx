@@ -158,10 +158,6 @@ build/static_assets/scripts/%.txt: src/static_assets/scripts/%.js
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@bin/xq link $(DOMAIN) scripts/$(*).js | tee $@
 
-
-
-
-
 deploy/static-assets.tar: styles fonts icons
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo ' - tar the "static-assets" volume into deploy directory'
