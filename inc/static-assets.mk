@@ -13,7 +13,7 @@ BuildIcons := $(patsubst src/%.svg,build/%.txt,$(IconsList))
 BuildFonts := $(patsubst src/%.woff2,build/%.txt,$(FontsList))
 
 .PHONY: assets
-assets: styles deploy/static-assets.tar
+assets: deploy/static-assets.tar
 
 .PHONY: styles
 styles: $(BuildStyles)
@@ -31,10 +31,10 @@ watch-assets:
 .PHONY: assets-clean
 assets-clean:
 	@echo '## $(@) ##'
-	@rm -fv $(BuildIcons)
 	@rm -fv $(BuildStyles)
 	@rm -fv deploy/static-assets.tar
-
+	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
+	@podman run --rm --mount $(MountAssets) $(ALPINE) rm -rv $${domain}
 
 .PHONY: assets-check
 assets-check:
@@ -58,13 +58,13 @@ assets-list:
 build/static_assets/%.css.txt: src/static_assets/%.css
 	@echo "##[ $* ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo $(dir $*)
 	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
 	@cat $< \
 		| podman run --interactive --rm ${CSSNANO} --no-map --use cssnano \
 		| podman run --interactive --rm ${ZOPFLI} \
 		| podman run --interactive --rm  --mount $(MountAssets) --entrypoint "sh" $(ALPINE) \
 	    -c 'cat - > /opt/proxy/html/$(*).css.gz'
+	@cp $< $@
 
 .PHONY: styles-clean
 styles-clean:
@@ -132,13 +132,6 @@ build/static_assets/fonts/%.txt: src/static_assets/fonts/%.woff2
 	@echo '$(notdir $<)' > $@ 
 
 
-sasasa:
-		'mkdir -p /opt/proxy/html/fonts'
-
-
-asasasasasll:
-	@#podman run --interactive --rm  --mount $(MountAssets) localhost/alpine \
-		'ls -l fonts'
 #############
 ### ICONS ###
 # these are in the commons
@@ -148,7 +141,7 @@ build/static_assets/icons/%.txt: src/static_assets/icons/%.svg
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@bin/xq link $(DOMAIN) icons/$(*).svg | tee $@
 
-deploy/static-assets.tar:
+deploy/static-assets.tar: styles 
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo ' - tar the "static-assets" volume into deploy directory'
 	@podman run --interactive --rm --mount $(MountAssets)  \

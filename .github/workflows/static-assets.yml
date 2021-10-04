@@ -19,4 +19,4 @@ jobs:
       - name: start xq running in the podx pod
         run: make xq
       - name: insert example.com styles into static-assets volume
-        run: make styles
+        run: make assets
