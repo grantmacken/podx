@@ -148,73 +148,7 @@ local:store( '$(cat $srcFile )', '$uri' ),
 
 # [ link ] Create - a db link to a binary or unparsed text file
 function dbLink() {
-  echo '##[ db link ##]'
-  local domain=$1
-  local base="$(echo $2 | grep -oP '^(src/static_assets/)?\K(.+)$')"
-  local srcFile="src/static_assets/$base"
-  [ -e $srcFile ] || die "[ $srcFile ] unknown file"
-  local dirName=$(dirname $base)
-  local baseName=$(basename $base)
-  local ext="${baseName##*.}"
-  local resource="${baseName%.*}"
-  if echo ${ext} | grep -oP '^(svg|js|css|woff2|woff)$' &>/dev/null
-  then
-    cmdAssetsMount "mkdir -p priv/static/assets/$dirName"
-  else
-   die "can not handle [ $ext ] extension"
-  fi
-  case "${ext}" in
-    svg)
-    # ICONS
-    #########
-    local res_ext='svgz'
-    local filename="$XQERL_HOME/priv/static/assets/$dirName/$resource.${res_ext}"
-    local uri="http://$domain/$dirName/$resource.${res_ext}"
-    #local scour_img='podman.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2'
-    ## icons asset pipeline
-    cat $srcFile | \
-    #podman run --rm --interactive ${scour_img} | \
-    podman run --rm --interactive ${ZOPFLI_IMG} | \
-    cmdAssetsMount "cat - > $filename"
-    ;;
-    js)
-    # SCRIPTS
-    ##########
-    local res_ext='js.gz'
-    local filename="$XQERL_HOME/priv/static/assets/$dirName/$resource.${res_ext}"
-    local uri="http://$domain/$dirName/$resource.${res_ext}"
-    ## scripts asset pipeline
-    cat $srcFile | \
-    podman run --rm --interactive ${ZOPFLI_IMG} | \
-    cmdAssetsMount "cat - > $filename"
-    ;;
-    css)
-    # STYLES
-    ##########
-    local res_ext='css.gz'
-    local filename="$XQERL_HOME/priv/static/assets/$dirName/$resource.${res_ext}"
-    local uri="http://$domain/$dirName/$resource.${res_ext}"
-    cat $srcFile | \
-    podman run --rm --init --interactive  ${CSSNANO_IMG} 2>/dev/null | \
-    podman run --rm --interactive ${ZOPFLI_IMG} | \
-    cmdAssetsMount "cat - > $filename"
-    ;;
-    *) 
-      # no pipeline catch
-      # fonts:  woff, woff2
-    local res_ext=${ext}
-    local filename="$XQERL_HOME/priv/static/assets/$dirName/$resource.${res_ext}"
-    local uri="http://$domain/$dirName/$resource.${res_ext}"
-    # no pipeline
-    cat $srcFile | \
-    cmdAssetsMount "cat - > $filename"
-    esac
-   # create link
-    cmdQuery "db:link('$filename','$uri')" &>/dev/null
-   echo -n '1. file: '
-    cmdAssetsMount "ls $filename"
-   echo -n '2. db link: '
-   dbList http://$domain/$dirName | grep -oP "http://$domain/$dirName/$resource.${res_ext}"
+  echo ''
  }
 
 # utility for Read actions
