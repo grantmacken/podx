@@ -19,11 +19,6 @@
     --green: hsla(92, 28%, 65%, 1);  /* #A3BE8C */
    --purple: hsla(311, 20%, 63%, 1); /* #b48ead */
 
-   /* TODO 
-    * token-based css
-    * Abstract repeatability away from the CSS 
-    * and apply it in the HTML instead
-    */
    /* BASE turns into 'utility' .base class */
    --base-font-family: 'IBM Plex Serif', 'Georgia', Times, serif;
    --base-font-size: min(max(1rem, 4vw), 22px);
