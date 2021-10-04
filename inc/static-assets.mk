@@ -13,7 +13,7 @@ BuildIcons := $(patsubst src/%.svg,build/%.txt,$(IconsList))
 BuildFonts := $(patsubst src/%.woff2,build/%.txt,$(FontsList))
 
 .PHONY: assets
-assets: deploy/static-assets.tar
+assets: styles deploy/static-assets.tar
 
 .PHONY: styles
 styles: $(BuildStyles)
@@ -148,8 +148,8 @@ build/static_assets/icons/%.txt: src/static_assets/icons/%.svg
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@bin/xq link $(DOMAIN) icons/$(*).svg | tee $@
 
-deploy/static-assets.tar: $(BuildIcons)
+deploy/static-assets.tar:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo ' - tar the "static-assets" volume into deploy directory'
 	@podman run --interactive --rm --mount $(MountAssets)  \
-		--entrypoint "tar" $(PROXY_IMAGE) -czf - $(PROXY_PREFIX)/html 2>/dev/null > $@
+		--entrypoint "tar" $(ALPINE) -czf - /opt/proxy/html 2>/dev/null > $@
