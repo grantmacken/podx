@@ -1,0 +1,22 @@
+name: podx builds
+on:
+  push:
+    branches: static-assets*
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: podman pull our images
+        run: make pods-pull
+      - name: podman create our volumes for podx
+        run: make volumes
+      - name: create the podx pod
+        run: make podx
+      - name: start xq running in the podx pod
+        run: make xq
+      - name: insert example.com styles into static-assets volume
+        run: echo 'TODO' # make styles
