@@ -12,7 +12,7 @@ JpegList :=  $(wildcard src/static_assets/images/*/*.jpg)
 BuildStyles := $(patsubst src/%,build/%.txt,$(DomainStylesList))
 BuildFonts := $(patsubst src/%.woff2,build/%.txt,$(FontsList))
 BuildIcons := $(patsubst src/%.svg,build/%.svgz.txt,$(IconsList))
-BuildImages := $(patsubst src/%,build/%.txt,$(JpegList))
+BuildImages := $(patsubst src/%.jpg,build/%.txt,$(JpegList))
 SiteImages := $(patsubst src/static_assets/%,%,$(JpegList))
 
 .PHONY: assets
@@ -141,12 +141,9 @@ ImageOriginSize=$(shell cat $1 \
 								| \podman run --rm --interactive --entrypoint '["/bin/sh", "-c"]' $(MAGICK)\
 								"magick identify -format '%b' jpg:- ")
 
-ImageResultSize=$(shell podman run --rm --interactive --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(MAGICK)\
-		"magick identify -format '%b' /opt/proxy/html/$1")
-
-build/static_assets/%.jpg.txt: src/static_assets/%.jpg
+build/static_assets/%.txt: src/static_assets/%.jpg
 	@echo "##[ $* ]##"
-	@[ -d $(dir $@) ] || mkdir -p $(dir $*)
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo "SRC: [ $< ]"
 	@echo "Orginal Size:  [ $(call ImageOriginSize, $<) ]"
 	@echo "Orginal Width: [ $(call ImageOriginWidth, $<) ]"
@@ -170,8 +167,6 @@ build/static_assets/%.jpg.txt: src/static_assets/%.jpg
 		jpg:- " | \
 		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
 		'cat - > $(dir $*)$(notdir $<)'
-	@#echo '$(dir $*)$(notdir $<)' 
-	@#podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE) ls -al $(dir $*)$(notdir $<)
 	@echo -n "Result Size:   [ "
 	@podman run --rm --interactive --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(MAGICK) \
 		'magick identify -format "%b" /opt/proxy/html/$(dir $*)$(notdir $<)'

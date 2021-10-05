@@ -18,7 +18,7 @@ jobs:
         run: make podx
       - name: start xq running in the podx pod
         run: make xq
-      - name: insert example.com styles into static-assets volume
+      - name: add assets into static-assets volume
         run: make assets
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
