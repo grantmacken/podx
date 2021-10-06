@@ -44,5 +44,3 @@ jobs:
           echo "TERM=xterm" >> $GITHUB_ENV
           printenv
           which tput
-          make check-init
-          make check
