@@ -1,0 +1,29 @@
+name: podx checks
+on:
+  push:
+    branches: checks*
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: podman pull our images
+        run: |
+          source .env
+          XQ=ghcr.io/grantmacken/podx-xq:$(GHPKG_XQ_VER)
+          OR=ghcr.io/grantmacken/podx-or:$(GHPKG_OR_VER)
+          CURL=docker.io/curlimages/curl:latest
+          podman pull $XQ
+          podman pull $OR
+          podman pull $CURL
+      - name: podman create our volumes for podx
+        run: make volumes
+      - name: podman create the podx pod
+        run: make podx
+      - name: xq running in the podx pod
+        run: make xq
+      - name: view xq running podx pod
+        run: podman ps --all --pod
