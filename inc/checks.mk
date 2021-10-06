@@ -72,7 +72,7 @@ check-init: $(PEM)
 
 .tmp/$(DOMAIN).pem:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@[ -e .tmp/example.pem ] || openssl s_client -showcerts -connect $(DOMAIN):8443 </dev/null \
+	@openssl s_client -showcerts -connect $(DOMAIN):8443 </dev/null \
 		| sed -n -e '/-.BEGIN/,/-.END/ p' > $@
 
 .PHONY: check-clean

@@ -19,6 +19,7 @@ jobs:
           OPENRESTY=ghcr.io/grantmacken/podx-openresty:${GHPKG_OPENRESTY_VER}
           W3M=ghcr.io/grantmacken/podx-w3m:${GHPKG_W3M_VER}
           CURL=docker.io/curlimages/curl:latest
+          podman pull $ALPINE
           podman pull $XQ
           podman pull $OR
           podman pull $OPENRESTY
@@ -39,4 +40,8 @@ jobs:
       - name: start running reverse-proxy in the pod name podx
         run: make or
       - name: setup cacert for curl
-        run: make check-init
+        run: |
+          echo "TERM=xterm" >> $GITHUB_ENV
+          printenv
+          which tput
+          make check-init
