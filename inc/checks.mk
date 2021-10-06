@@ -60,9 +60,10 @@ ServesContentType = if $(call HasHeaderKey,$(1),$(2)); then \
  GET = curl --silent --show-error \
  --cacert $(PEM) \
  --write-out $(WriteOut) \
+ --resolve $(DOMAIN):8443:127.0.0.1 \
  --dump-header $(dir $2)/$(notdir $2).headers \
  --output $(dir $2)/$(notdir $2).html \
- $(BASE_URL)$1 > $2
+ https://$(DOMAIN):8443$1 > $2
 
 .PHONY: check-init
 check-init: $(PEM)

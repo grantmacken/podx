@@ -13,8 +13,8 @@ jobs:
       - name: podman pull our images
         run: |
           source .env
-          XQ=ghcr.io/grantmacken/podx-xq:$(GHPKG_XQ_VER)
-          OR=ghcr.io/grantmacken/podx-or:$(GHPKG_OR_VER)
+          XQ=ghcr.io/grantmacken/podx-xq:${GHPKG_XQ_VER}
+          OR=ghcr.io/grantmacken/podx-or:${GHPKG_OR_VER}
           CURL=docker.io/curlimages/curl:latest
           podman pull $XQ
           podman pull $OR
