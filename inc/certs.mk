@@ -1,8 +1,8 @@
 ##############
 # self signed certs for example.com
 ##############
-.PHONY: certs-create-self-signed
-certs-create-self-signed: src/proxy/conf/self-signed.conf
+.PHONY: certs-self-sign
+certs-self-sign: src/proxy/conf/self-signed.conf
 
 .PHONY: certs-clean
 certs-clean: 

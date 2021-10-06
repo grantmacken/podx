@@ -13,17 +13,30 @@ jobs:
       - name: podman pull our images
         run: |
           source .env
+          ALPINE=ghcr.io/grantmacken/podx-alpine:${GHPKG_ALPINE_VER}
           XQ=ghcr.io/grantmacken/podx-xq:${GHPKG_XQ_VER}
           OR=ghcr.io/grantmacken/podx-or:${GHPKG_OR_VER}
+          OPENRESTY=ghcr.io/grantmacken/podx-openresty:${GHPKG_OPENRESTY_VER}
+          W3M=ghcr.io/grantmacken/podx-w3m:${GHPKG_W3M_VER}
           CURL=docker.io/curlimages/curl:latest
           podman pull $XQ
           podman pull $OR
+          podman pull $OPENRESTY
+          podman pull $W3M
           podman pull $CURL
       - name: podman create our volumes for podx
         run: make volumes
       - name: podman create the podx pod
         run: make podx
-      - name: xq running in the podx pod
+      - name: start xq running in the podx pod
         run: make xq
-      - name: view xq running podx pod
-        run: podman ps --all --pod
+      - name: insert data content for example.com into xqerl-database
+        run: make content
+      - name: insert self signed certs into certs volume
+        run: make certs-self-sign
+      - name: insert nginx conf files into proxy-conf volume
+        run: make confs
+      - name: start running reverse-proxy in the pod name podx
+        run: make or
+      - name: check running reverse-proxy in the pod name podx
+        run: make check

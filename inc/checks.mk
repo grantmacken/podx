@@ -95,7 +95,6 @@ checks/$(DOMAIN)/home/index:
 	@$(call HasHeaderKeyShowValue,$@.headers,server)
 	@$(call HasHeaderKeyShowValue,$@.headers,date)
 	@$(DASH)
-	@touch $@
 
 # fHeader = $(patsubst %/$(1),%/headers-$(1),$(2)) # 1=file 2=headerKey
 
