@@ -12,8 +12,8 @@ W3M       := ghcr.io/grantmacken/podx-w3m:$(GHPKG_W3M_VER)
 ZOPFLI    := ghcr.io/grantmacken/podx-zopfli:$(GHPKG_ZOPFLI_VER)
 CSSNANO   := ghcr.io/grantmacken/podx-cssnano:$(GHPKG_CSSNANO_VER)
 WEBPACK   := ghcr.io/grantmacken/podx-webpack:$(GHPKG_WEBPACK_VER)
-OPENRESTY := ghcr.io/grantmacken/podx-openresty:$(FROM_OPENRESTY_VER)
-ALPINE    := ghcr.io/grantmacken/podx-alpine:$(FROM_ALPINE_VER)
+OPENRESTY := ghcr.io/grantmacken/podx-openresty:$(GHPKG_OPENRESTY_VER)
+ALPINE    := ghcr.io/grantmacken/podx-alpine:$(GHPKG_ALPINE_VER)
 
 CURL := docker.io/curlimages/curl:latest
 
@@ -45,7 +45,6 @@ help: ## show this help
 
 include inc/*.mk
 
-#CONNECT_TO := --connect-to $(XQ):80:xq.$(NETWORK):$(XQERL_PORT) 
 #RESOLVE := --resolve $(XQ):$(XQERL_PORT):$(ipAddress)
 #CURL := docker run --pod $(POD) --rm --interactive  $(CURL_IMAGE) $(CONNECT_TO)
 
@@ -56,29 +55,6 @@ crl:
 	@$(DASH)
 	@curl -vk https://example.com:8443 || true
 	@$(DASH)
-	@#openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p'
 	@#podman run --pod $(POD) --rm --interactive  $(CURL) -v http://localhost:8081/example.co
 	#podman run --pod $(POD) --rm -it  localhost/w3m -dump_extra http://localhost:8081/example.com/home/index
 	#podman run --pod $(POD) --rm -it  localhost/w3m -dump http://localhost:8081/example.com/home/index
-
-.PHONY: xcheck
-xcheck: 
-	@#podman ps --pod
-	@#echo && echo 'check: example.com reachable on localhost'
-	@#echo && $(DASH) && echo
-	@#w3m -dump_head http://example.com:8080
-	@#$(DASH) && echo
-	@#w3m -dump https://example.com:8443
-	@#$(DASH) && echo
-	@#$(DASH) && echo
-	@curl -v http://example.com:8080 || true
-	@#$(DASH) && echo
-	@#openssl s_client -showcerts -connect example.com:8443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > example.pem
-	@#curl --cacert example.pem https://example.com:8443
-	@#w3m -dump https://example.com:8443
-	@#echo && $(DASH)
-	@#w3m -dump -o ssl_verify_server=false https://example.com:8443
-	@#$(DASH)
-	@#w3m -dump_both -o ssl_verify_server=false https://example.com:8443
-	@$(DASH)
-
