@@ -145,7 +145,6 @@ build/static_assets/%.txt: src/static_assets/%.jpg
 	@echo "##[ $* ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo "SRC: [ $< ]"
-	@echo "Orginal Size:  [ $(call ImageOriginSize, $<) ]"
 	@echo "Orginal Width: [ $(call ImageOriginWidth, $<) ]"
 	@echo "Aim For Width: [ $(call ImageWidthFromDir, $<) ]"
 	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
@@ -167,7 +166,8 @@ build/static_assets/%.txt: src/static_assets/%.jpg
 		jpg:- " | \
 		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
 		'cat - > $(dir $*)$(notdir $<)'
-	@echo -n "Result Size:   [ "
+	@echo    "Orginal Size:  [ $(call ImageOriginSize, $<) ]"
+	@echo -n " Result Size:  [ "
 	@podman run --rm --interactive --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(MAGICK) \
 		'magick identify -format "%b" /opt/proxy/html/$(dir $*)$(notdir $<)'
 	@echo -n " ] " && echo
