@@ -147,7 +147,6 @@ build-magick: ## buildah build imagemagick
 	@buildah run $${CONTAINER} apk add --no-cache imagemagick
 	@buildah run $${CONTAINER} mkdir -p /opt/proxy/html/images
 	@buildah config --workingdir /opt/proxy/html/images $${CONTAINER}
-	@buildah commit $${CONTAINER} magick
 	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
 	@buildah config --label org.opencontainers.image.title='alpine based image$(call Origin,$@) image' $${CONTAINER} # title
 	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description

@@ -7,10 +7,13 @@ CommonStylesList := $(wildcard src/static_assets/styles/*.css)
 
 IconsList := $(wildcard src/static_assets/icons/*.svg)
 FontsList := $(wildcard src/static_assets/fonts/*.woff2)
+JpegList :=  $(wildcard src/static_assets/images/*/*.jpg)
 
 BuildStyles := $(patsubst src/%,build/%.txt,$(DomainStylesList))
 BuildFonts := $(patsubst src/%.woff2,build/%.txt,$(FontsList))
 BuildIcons := $(patsubst src/%.svg,build/%.svgz.txt,$(IconsList))
+BuildImages := $(patsubst src/%.jpg,build/%.txt,$(JpegList))
+SiteImages := $(patsubst src/static_assets/%,%,$(JpegList))
 
 .PHONY: assets
 assets: deploy/static-assets.tar
@@ -23,6 +26,9 @@ fonts: $(BuildFonts)
 
 .PHONY: icons
 icons: $(BuildIcons)
+
+.PHONY: images
+images: $(BuildImages)
 
 .PHONY: watch-assets
 watch-assets:
@@ -125,17 +131,28 @@ icons-list:
 # https://imagemagick.org/script/command-line-processing.php
 # https://www.smashingmagazine.com/2015/06/efficient-image-resizing-with-imagemagick/
 # TODO https://imagemagick.org/script/magick-script.php
-.PHONY: images
-images:  # TODO
-	@#podman run --interactive --rm --mount $(MountAssets) localhost/magick pwd
-	@#podman run --interactive --rm  --mount $(MountAssets) localhost/magick 'printenv'
-	@#podman run --interactive --rm --mount $(MountAssets) localhost/magick 'rm -fv *.jpg'
-	@cat src/static_assets/images/SampleJPGImage_50kbmb.jpg | \
-		podman run --interactive --rm --mount $(MountAssets) localhost/magick \
-		'magick jpg:-  \
+
+ImageWidthFromDir=$(shell basename $(dir $1))
+ImageOriginWidth=$(shell cat $1 \
+								 | podman run --rm --interactive --entrypoint '["/bin/sh", "-c"]' $(MAGICK) \
+								 "magick identify -format '%w' jpg:- ")
+
+ImageOriginSize=$(shell cat $1 \
+								| \podman run --rm --interactive --entrypoint '["/bin/sh", "-c"]' $(MAGICK)\
+								"magick identify -format '%b' jpg:- ")
+
+build/static_assets/%.txt: src/static_assets/%.jpg
+	@echo "##[ $* ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo "SRC: [ $< ]"
+	@echo "Orginal Width: [ $(call ImageOriginWidth, $<) ]"
+	@echo "Aim For Width: [ $(call ImageWidthFromDir, $<) ]"
+	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
+	@cat $< | podman run --rm --interactive --entrypoint '["/bin/sh", "-c"]' $(MAGICK) \
+		"magick jpg:-  \
 		-filter Triangle \
 		-define filter:support=2 \
-		-thumbnail '180' \
+		-thumbnail '$(call ImageWidthFromDir,$<)' \
 		-unsharp 0.25x0.08+8.3+0.045 \
 		-dither None \
 		-posterize 136 \
@@ -146,8 +163,29 @@ images:  # TODO
 		-define png:compression-strategy=1 \
 		-define png:exclude-chunk=all \
 		-interlace none -colorspace sRGB \
-		-set filename:area '%wx%h' jpg:sample-%[filename:area].jpg'
-	@#podman run --interactive --rm --mount $(MountAssets) localhost/magick ls -l
+		jpg:- " | \
+		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
+		'cat - > $(dir $*)$(notdir $<)'
+	@echo    "Orginal Size:  [ $(call ImageOriginSize, $<) ]"
+	@echo -n " Result Size:  [ "
+	@podman run --rm --interactive --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(MAGICK) \
+		'magick identify -format "%b" /opt/proxy/html/$(dir $*)$(notdir $<)'
+	@echo -n " ] " && echo
+	@podman run --rm --interactive --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(MAGICK) \
+		'magick identify -verbose /opt/proxy/html/$(dir $*)$(notdir $<)' > $@
+	@$(DASH)
+
+.PHONY: images-list
+images-list:
+	@echo '## $(@) ##'
+	@podman run --rm --mount $(MountAssets) $(ALPINE) ls -alR images
+
+.PHONY: images-clean
+images-clean:
+	@echo '## $(@) ##'
+	@rm -fv $(BuildImages)
+	@#echo $(SiteImages)
+	@podman run --rm --mount $(MountAssets) $(ALPINE) sh -c 'rm -fv $(SiteImages)'
 	
 ################
 ### SCRIPTS ###
@@ -158,7 +196,7 @@ build/static_assets/scripts/%.txt: src/static_assets/scripts/%.js
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@bin/xq link $(DOMAIN) scripts/$(*).js | tee $@
 
-deploy/static-assets.tar: styles fonts icons
+deploy/static-assets.tar: styles fonts icons images
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo ' - tar the "static-assets" volume into deploy directory'
 	@podman run --interactive --rm --mount $(MountAssets)  \
