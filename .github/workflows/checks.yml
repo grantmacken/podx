@@ -39,9 +39,10 @@ jobs:
         run: make confs
       - name: start running reverse-proxy in the pod name podx
         run: make or
-      - name: setup cacert for curl
+      - name: checks
         run: |
           echo "TERM=xterm" >> $GITHUB_ENV
           printenv
           which tput
           make check-init
+          make check
