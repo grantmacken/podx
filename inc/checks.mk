@@ -60,6 +60,8 @@ ServesContentType = if $(call HasHeaderKey,$(1),$(2)); then \
  GET = curl --silent --show-error \
  --cacert $(PEM) \
  --write-out $(WriteOut) \
+ --connect-timeout 1 \
+ --max-time 2 \
  --resolve $(DOMAIN):8443:127.0.0.1 \
  --dump-header $(dir $2)/$(notdir $2).headers \
  --output $(dir $2)/$(notdir $2).html \
