@@ -39,8 +39,13 @@ jobs:
         run: make confs
       - name: start running reverse-proxy in the pod name podx
         run: make or
+      - name: add example.com to hosts file
+        run: echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
+      - name: create a cacert pem that curl can use
+        run: make certs-pem
       - name: checks
         run: |
           echo "TERM=xterm" >> $GITHUB_ENV
           printenv
-          which tput
+          make check
+          

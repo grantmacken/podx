@@ -1,5 +1,3 @@
-BASE_URL := https://$(DOMAIN):8443
-PEM := .tmp/$(DOMAIN).pem
 
 ##########################################
 # generic make function calls
@@ -58,29 +56,20 @@ ServesContentType = if $(call HasHeaderKey,$(1),$(2)); then \
  else $(call Cross,'- header [ $2 ] should value [ $3 ] ');echo;false;fi\
  else $(call Cross,'- header [ $2 ] should have value [ $3 ] ');echo;false;fi
  GET = curl --silent --show-error \
- --cacert $(PEM) \
+ --cacert src/proxy/certs/example.com.pem \
  --write-out $(WriteOut) \
  --connect-timeout 1 \
  --max-time 2 \
- --resolve $(DOMAIN):8443:127.0.0.1 \
  --dump-header $(dir $2)/$(notdir $2).headers \
  --output $(dir $2)/$(notdir $2).html \
  https://$(DOMAIN):8443$1 > $2
-
-.PHONY: check-init
-check-init: $(PEM)
-
-.tmp/$(DOMAIN).pem:
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@openssl s_client -showcerts -connect $(DOMAIN):8443 </dev/null \
-		| sed -n -e '/-.BEGIN/,/-.END/ p' > $@
 
 .PHONY: check-clean
 check-clean:
 	@rm -fr checks
 
 .PHONY: check
-check: check-init checks/$(DOMAIN)/home/index
+check: checks/$(DOMAIN)/home/index
 
 checks/$(DOMAIN)/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
