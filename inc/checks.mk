@@ -3,8 +3,8 @@
 # generic make function calls
 # call should result in success or failure
 ##########################################
-Tick  = echo -n "$$(tput setaf 2) ✔ $$(tput sgr0) " && echo -n $1
-Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo -n $1
+Tick  = printf '\033[32m✔ \033[0m %s' $1
+Cross = printf "\033[31m✘ \033[0m %s" $1
 # CURL_IMAGE :=  curlimages/curl:$(CURL_VER)
 #CONNECT_TO := --connect-to xq:80:xq.$(NETWORK):$(XQERL_PORT) 
 #CURL := docker run --rm --interactive --network $(NETWORK) $(CURL_IMAGE) $(CONNECT_TO)
