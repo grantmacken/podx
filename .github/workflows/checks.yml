@@ -44,8 +44,5 @@ jobs:
       - name: create a cacert pem that curl can use
         run: make certs-pem
       - name: checks
-        run: |
-          echo "TERM=xterm" >> $GITHUB_ENV
-          printenv
-          make check
+        run: make check
           

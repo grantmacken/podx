@@ -73,6 +73,10 @@ check: checks/$(DOMAIN)/home/index
 
 checks/$(DOMAIN)/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+
+ifdef GITHUB_ACTIONS
+	@TERM=xterm-256color
+endif
 	@$(call GET,'/',$@)
 	@$(DASH)
 	@cat $@
@@ -82,7 +86,7 @@ checks/$(DOMAIN)/home/index:
 	@cat $@.headers
 	@$(DASH)
 	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
-	@$(call HasHeaderKeyShowValue,$@.headers,content-type)
+	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
 	@$(call HasHeaderKeyShowValue,$@.headers,server)
 	@$(call HasHeaderKeyShowValue,$@.headers,date)
 	@$(DASH)
