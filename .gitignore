@@ -1,9 +1,11 @@
 build
 deploy
+checks
 site
 .tmp
 .git
 src/proxy/certs/
+src/proxy/conf/self-signed.conf
 container-or.service
 container-xq.service
 pod-podx.service

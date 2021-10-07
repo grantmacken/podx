@@ -1,8 +1,12 @@
 ##############
 # self signed certs for example.com
 ##############
-.PHONY: certs-create-self-signed
-certs-create-self-signed: src/proxy/conf/self-signed.conf
+.PHONY: certs-self-sign
+certs-self-sign: src/proxy/certs/$(DOMAIN).crt \
+	src/proxy/certs/dhparam.pem \
+	src/proxy/conf/self-signed.conf
+
+certs-pem: src/proxy/certs/$(DOMAIN).pem # or must be running
 
 .PHONY: certs-clean
 certs-clean: 
@@ -34,14 +38,14 @@ src/proxy/certs/example.com.crt: src/proxy/certs/example.com.csr
 	@cat $@ | podman run --interactive --rm  --mount $(MountCerts) --entrypoint "sh" $(OPENRESTY) \
 		-c 'cat - > /opt/proxy/certs/$(notdir $@)'
 
-src/proxy/certs/dhparam.pem: src/proxy/certs/example.com.crt
+src/proxy/certs/dhparam.pem:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '##[ $(notdir $@) ]##'
 	@openssl dhparam -out $@ 2048
 	@cat $@ | podman run --interactive --rm  --mount $(MountCerts) --entrypoint "sh" $(OPENRESTY) \
 		-c 'cat - > /opt/proxy/certs/$(notdir $@)'
 
-src/proxy/conf/self-signed.conf: src/proxy/certs/dhparam.pem
+src/proxy/conf/self-signed.conf:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir $@) ##'
 	@echo "ssl_certificate /opt/proxy/certs/example.com.crt;" > $@
@@ -53,3 +57,10 @@ src/proxy/conf/self-signed.conf: src/proxy/certs/dhparam.pem
 		-c 'ls -al ./conf '
 		@podman run --interactive --rm  --mount $(MountCerts) --entrypoint "sh" $(OPENRESTY) \
 		-c 'ls -al ./certs '
+
+src/proxy/certs/$(DOMAIN).pem:
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo '## $(notdir $@) ##'
+	@openssl s_client -showcerts -connect $(DOMAIN):8443 </dev/null \
+		| sed -n -e '/-.BEGIN/,/-.END/ p' > $@
+
