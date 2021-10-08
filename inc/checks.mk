@@ -73,10 +73,6 @@ check: checks/$(DOMAIN)/home/index
 
 checks/$(DOMAIN)/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-
-ifdef GITHUB_ACTIONS
-	@TERM=xterm-256color
-endif
 	@$(call GET,'/',$@)
 	@$(DASH)
 	@cat $@
