@@ -46,8 +46,8 @@ code-clean:
 .PHONY: code-list
 code-list:
 	@echo '## $(@) ##'
-	@podman run --pod $(POD) --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQERL_IMAGE) \
-		-c 'ls -al ./code/src'
+	@podman run --rm  --mount $(MountCode) --entrypoint '["sh","-c"]' $(XQ) \
+		'ls -al ./code/src'
 
 build/code/%.xqm.txt: src/code/%.xqm
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
