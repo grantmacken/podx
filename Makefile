@@ -14,16 +14,11 @@ CSSNANO   := ghcr.io/grantmacken/podx-cssnano:$(GHPKG_CSSNANO_VER)
 WEBPACK   := ghcr.io/grantmacken/podx-webpack:$(GHPKG_WEBPACK_VER)
 OPENRESTY := ghcr.io/grantmacken/podx-openresty:$(GHPKG_OPENRESTY_VER)
 ALPINE    := ghcr.io/grantmacken/podx-alpine:$(GHPKG_ALPINE_VER)
-
 CURL := docker.io/curlimages/curl:latest
-
 XQ        := ghcr.io/grantmacken/podx-xq:$(GHPKG_XQ_VER)
 OR        := ghcr.io/grantmacken/podx-or:$(GHPKG_OR_VER)
-
-PROXY_IMAGE=proxy
-# OPM_IMAGE=$(GHPKG_REGISTRY)/$(REPO_OWNER)/$(PROXY_NAME):opm-$(PROXY_VER)
-#RESTY_IMAGE=$(GHPKG_REGISTRY)/$(REPO_OWNER)/$(PROXY_NAME):resty-$(PROXY_VER)
-XQERL_IMAGE=xqerl
+# TODO OPM_IMAGE=$(GHPKG_REGISTRY)/$(REPO_OWNER)/$(PROXY_NAME):opm-$(PROXY_VER)
+# TODO RESTY_IMAGE=$(GHPKG_REGISTRY)/$(REPO_OWNER)/$(PROXY_NAME):resty-$(PROXY_VER)
 # proxy mounts
 MountLetsencrypt := type=volume,target=/etc/letsencrypt,source=letsencrypt
 MountCerts       := type=volume,target=/opt/proxy/certs,source=certs

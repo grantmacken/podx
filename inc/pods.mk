@@ -103,7 +103,7 @@ pods-clean:
 	@systemctl --user daemon-reload
 	@rm -f pod-podx.service
 	@rm -f container-xq.service 
-	@rm -f container-or.service 
+	@rm -f container-or.service
 
 .PHONY: volumes-clean
 volumes-clean: pods-clean

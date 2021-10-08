@@ -50,7 +50,7 @@ assets-check:
 	@echo '## $(@) ##'
 	@$(DASH) 
 	@podman run --pod $(POD) --interactive --rm  --mount $(MountAssets) \
-		--entrypoint "sh" $(PROXY_IMAGE) -c 'ls -al /opt/proxy/html/icons'
+		--entrypoint "sh" $(OR) -c 'ls -al /opt/proxy/html/icons'
 	@curl -v http://example.com:8080/icons/article
 	@echo && $(DASH) 
 

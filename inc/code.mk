@@ -76,4 +76,4 @@ build/code/%.xq.txt: src/code/%.xq
 deploy/code.tar:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@podman run  --interactive --rm  --mount $(MountCode)  \
-	 --entrypoint "tar" $(XQERL_IMAGE) -czf - $(XQERL_HOME)/code 2>/dev/null > $@
+	 --entrypoint "tar" $(XQ) -czf - $(XQERL_HOME)/code 2>/dev/null > $@
