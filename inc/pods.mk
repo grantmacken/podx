@@ -9,11 +9,14 @@
 #   the proxy service started after xqerl modules compiled
 #####################
 .PHONY: pods
-pods: vol podx xq or
+pods: volumes podx xq or
 	@podman image list
 	@podman volume list
 	@podman pod list
 	@podman ps -a --pod
+
+.PHONY: pull
+pull: pods-pull-essential pods-pull-helpers
 
 .PHONY: pods-pull-essential
 pods-pull-essential:
@@ -102,10 +105,11 @@ pods-clean:
 	@rm -f container-xq.service 
 	@rm -f container-or.service 
 
-.PHONY: vol-clean
-vol-clean: clean
+.PHONY: volumes-clean
+volumes-clean: pods-clean
 	@podman volume exists static-assets && podman volume rm static-assets
 	@podman volume exists proxy-conf && podman volume rm proxy-conf
+	@podman volume exists certs && podman volume rm certs
 	@podman volume exists letsencrypt && podman volume rm letsencrypt
 	@podman volume exists lualib && podman volume rm lualib
 	@podman volume exists xqerl-database && podman volume rm xqerl-database
