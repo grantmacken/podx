@@ -2,15 +2,17 @@
 # self signed certs for example.com
 ##############
 
-certs-volume: deploy/certs-volume.tar
+certs-volume: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem
 certs-conf:  src/proxy/conf/self_signed.conf
-cacert: src/proxy/certs/$(DOMAIN).pem # or must be running
+certs-pem: src/proxy/certs/$(DOMAIN).pem # or must be running
 
 certs-volume-check: 
 		@podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
 			'ls ../certs'
 
 deploy/certs-volume.tar: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo '## $(notdir $@) ##'
 		@podman run --rm  --interactive  --mount $(MountCerts) --entrypoint '["sh", "-c"]'  $(ALPINE) \
 			'tar -czf - /opt/proxy/certs' 2>/dev/null > $@
 
@@ -56,6 +58,7 @@ src/proxy/certs/dhparam.pem:
 	@cat $@ | \
 		podman run --rm --interactive --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
 		'cat - > /opt/proxy/certs/$(notdir $@)'
+	@podman run --rm  --mount $(MountCerts) $(ALPINE) ls -al /opt/proxy/certs
 
 src/proxy/conf/self_signed.conf:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
