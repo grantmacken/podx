@@ -51,15 +51,6 @@ src/proxy/certs/example.com.crt: src/proxy/certs/example.com.csr
 		'cat - > /opt/proxy/certs/$(notdir $@)'
 	@podman run --rm  --mount $(MountCerts) $(ALPINE) ls -al /opt/proxy/certs
 
-src/proxy/certs/dhparam.pem:
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '##[ $(notdir $@) ]##'
-	@openssl dhparam -out $@ 2048
-	@cat $@ | \
-		podman run --rm --interactive --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
-		'cat - > /opt/proxy/certs/$(notdir $@)'
-	@podman run --rm  --mount $(MountCerts) $(ALPINE) ls -al /opt/proxy/certs
-
 src/proxy/conf/self_signed.conf:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir $@) ##'
@@ -69,6 +60,18 @@ src/proxy/conf/self_signed.conf:
 	@cat $@ | \
 		podman run --rm  --interactive --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) \
 		'cat - > /opt/proxy/conf/$(notdir $@)'
+	@podman run --rm  --mount $(MountProxyConf) $(ALPINE) ls -al /opt/proxy/conf
+
+src/proxy/certs/dhparam.pem:
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo '##[ $(notdir $@) ]##'
+	@openssl dhparam -out $@ 2048
+	@cat $@ | \
+		podman run --rm --interactive --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
+		'cat - > /opt/proxy/certs/$(notdir $@)'
+	@podman run --rm  --mount $(MountCerts) $(ALPINE) ls -al /opt/proxy/certs
+
+
 
 src/proxy/certs/$(DOMAIN).pem:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
