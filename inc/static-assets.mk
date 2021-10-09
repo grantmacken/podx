@@ -95,11 +95,12 @@ styles-list:
 ###############
 
 build/static_assets/%.txt: src/static_assets/%.woff2
-	@echo "##[ $(*).woff2 ]##"
+	@echo "##[ $(notdir $< ) ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@cat $< | podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
-		'cat - > $(*).woff2'
-	@echo '$(notdir $<)' > $@ 
+	podman run --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE) 'mkdir -p fonts'
+	@cat $< | \
+		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
+		'cat - > ./fonts/$(notdir $< )'
 
 .PHONY: fonts-list
 fonts-list:

@@ -33,6 +33,10 @@ jobs:
         run: make xq
       - name: insert data content for example.com into xqerl-database
         run: make content
+      - name: insert styles for example.com into static-assets volume
+        run: make styles
+      - name: insert fonts for commoms into static-assets volume
+        run: make fonts
       - name: insert self signed certs into certs volume
         run: make certs-volume
       - name: create self_sign.conf for nginx
