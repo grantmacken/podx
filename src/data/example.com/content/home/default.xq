@@ -21,11 +21,19 @@ function($map) {
         attribute href { $map?url },
         attribute rel { 'self' },
         attribute type { 'text/html' }
+        }, (:
+      element link {
+        attribute href { '/fonts/ibm-plex-sans-v7-latin-regular.woff2' },
+        attribute rel { 'preload' },
+        attribute as { 'font' },
+        attribute type { 'font/woff2' }
         },
+        :)
       element link {
         attribute href { '/styles/fonts' },
         attribute rel { 'preload' },
-        attribute as { 'style' }
+        attribute as { 'style' },
+        attribute type { 'text/css' }
         },
       element link {
         attribute href { '/styles/index' },
