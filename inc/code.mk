@@ -46,8 +46,8 @@ code-clean:
 .PHONY: code-list
 code-list:
 	@echo '## $(@) ##'
-	@podman run --pod $(POD) --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQERL_IMAGE) \
-		-c 'ls -al ./code/src'
+	@podman run --rm  --mount $(MountCode) --entrypoint '["sh","-c"]' $(XQ) \
+		'ls -al ./code/src'
 
 build/code/%.xqm.txt: src/code/%.xqm
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
@@ -76,4 +76,4 @@ build/code/%.xq.txt: src/code/%.xq
 deploy/code.tar:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@podman run  --interactive --rm  --mount $(MountCode)  \
-	 --entrypoint "tar" $(XQERL_IMAGE) -czf - $(XQERL_HOME)/code 2>/dev/null > $@
+	 --entrypoint "tar" $(XQ) -czf - $(XQERL_HOME)/code 2>/dev/null > $@

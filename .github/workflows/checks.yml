@@ -34,9 +34,13 @@ jobs:
       - name: insert data content for example.com into xqerl-database
         run: make content
       - name: insert self signed certs into certs volume
-        run: make certs-self-sign
+        run: make certs-volume
+      - name: create self_sign.conf for nginx
+        run: make certs-conf
       - name: insert nginx conf files into proxy-conf volume
         run: make confs
+      - name: check conf files
+        run: make confs-check
       - name: start running reverse-proxy in the pod name podx
         run: make or
       - name: add example.com to hosts file

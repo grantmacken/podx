@@ -299,7 +299,7 @@ endif
 
 .PHONY: run-xqerl-ash
 run-xqerl-ash: podx
-	@podman run --pod $(POD) -it --rm --entrypoint "/bin/ash" $(XQERL_IMAGE)
+	@podman run --pod $(POD) -it --rm --entrypoint "/bin/ash" $(XQ)
 	@podman ps --pod
 
 .PHONY: xqerl-run
@@ -307,7 +307,7 @@ xqerl-run: podx
 	@podman run --pod $(POD) \
 		 --mount $(MountCode) --mount $(MountData) \
 		 --name xq --rm \
-		 --detach $(XQERL_IMAGE)
+		 --detach $(XQ)
 	@podman ps -a --pod
 
 .PHONY: xqerl-check
@@ -329,14 +329,14 @@ xqerl-check: xqerl-run
 
 .PHONY: run-ash
 run-ash: podx
-	@podman run --pod $(POD) -it --rm --entrypoint "/bin/ash" $(PROXY_IMAGE)
+	@podman run --pod $(POD) -it --rm --entrypoint "/bin/ash" $(OR)
 	@podman ps -a --pod
 
 .PHONY: proxy-run
 proxy-run: xqerl-check
 	@podman run --pod $(POD) \
 		--rm --name or \
-		--detach $(PROXY_IMAGE)
+		--detach $(OR)
 
 .PHONY: proxy-check
 proxy-check: proxy-run
