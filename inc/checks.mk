@@ -55,25 +55,25 @@ ServesContentType = if $(call HasHeaderKey,$(1),$(2)); then \
  then $(call Tick, '- header [ $2 ] should have value [ $3 ] ');echo ;true; \
  else $(call Cross,'- header [ $2 ] should value [ $3 ] ');echo;false;fi\
  else $(call Cross,'- header [ $2 ] should have value [ $3 ] ');echo;false;fi
- GET = curl --silent --show-error \
- --cacert src/proxy/certs/example.com.pem \
- --write-out $(WriteOut) \
- --connect-timeout 1 \
- --max-time 2 \
- --dump-header $(dir $2)/$(notdir $2).headers \
- --output $(dir $2)/$(notdir $2).html \
- https://$(DOMAIN):8443$1 > $2
+
 
 .PHONY: check-clean
 check-clean:
 	@rm -fr checks
 
 .PHONY: check
-check: checks/$(DOMAIN)/home/index
+check: checks/$(DOMAIN)/home/index checks/$(DOMAIN)/styles/index
 
 checks/$(DOMAIN)/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@$(call GET,'/',$@)
+	@curl --silent --show-error \
+ --cacert src/proxy/certs/example.com.pem \
+ --write-out $(WriteOut) \
+ --connect-timeout 1 \
+ --max-time 2 \
+ --dump-header $(dir $@)/$(notdir $@).headers \
+ --output $(dir $@)/$(notdir $@).html \
+ https://$(DOMAIN):8443/home/index > $@
 	@$(DASH)
 	@cat $@
 	@echo && $(DASH)
@@ -84,7 +84,30 @@ checks/$(DOMAIN)/home/index:
 	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
 	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
 	@$(call HasHeaderKeyShowValue,$@.headers,server)
+	@$(DASH)
+
+checks/$(DOMAIN)/styles/index:
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@curl --silent --show-error \
+ --cacert src/proxy/certs/example.com.pem \
+ --write-out $(WriteOut) \
+ --connect-timeout 1 \
+ --max-time 2 \
+ --dump-header $(dir $@)/$(notdir $@).headers \
+ --output $(dir $@)/$(notdir $@).css \
+ https://$(DOMAIN):8443/styles/index > $@
+	@$(DASH)
+	@cat $@
+	@echo && $(DASH)
+	@cat $@.css
+	@echo && $(DASH)
+	@cat $@.headers
+	@$(DASH)
+	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
+	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
+	@$(call HasHeaderKeyShowValue,$@.headers,server)
 	@$(call HasHeaderKeyShowValue,$@.headers,date)
+	@$(call HasHeaderKeyShowValue,$@.headers,vary)
 	@$(DASH)
 
 # fHeader = $(patsubst %/$(1),%/headers-$(1),$(2)) # 1=file 2=headerKey
