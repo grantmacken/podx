@@ -84,6 +84,13 @@ or:
     --detach $(OR)
 	@podman ps -a --pod
 
+.PHONY: or-reload
+or-reload:
+	@echo "##[ $(@) ]##"
+	@podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t
+	@podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -s reload
+	@podman ps -a --pod
+
 .PHONY: or-down
 or-down:
 	@echo "##[ $(@) ]##"

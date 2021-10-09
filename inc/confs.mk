@@ -45,6 +45,11 @@ build/proxy/conf/%.conf: src/proxy/conf/%.conf
 	@echo '## $@ ##'
 	@cat $< | podman run --interactive --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) \
 		 'cat - > /opt/proxy/conf/$(notdir $<) && cat /opt/proxy/conf/$(notdir $<)' > $@
+	@if podman inspect --format="{{.State.Running}}" or &>/dev/null
+	then
+	podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t
+	podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -s reload
+	fi
 
 check/proxy/conf/%.conf: build/proxy/conf/%.conf
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)

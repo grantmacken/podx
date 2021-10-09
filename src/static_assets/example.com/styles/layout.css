@@ -100,6 +100,8 @@ main > article > * {
 
 footer {
   margin-top: 0;
+  margin-left: auto;
+  margin-right: auto;
   font-size: smaller;
   /* display: block; */
 }
