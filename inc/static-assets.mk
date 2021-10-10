@@ -8,12 +8,16 @@ CommonStylesList := $(wildcard src/static_assets/styles/*.css)
 IconsList := $(wildcard src/static_assets/icons/*.svg)
 FontsList := $(wildcard src/static_assets/fonts/*.woff2)
 JpegList :=  $(wildcard src/static_assets/images/*/*.jpg)
+ScriptsList := $(wildcard src/static_assets/scripts/*.js)
 
 BuildStyles := $(patsubst src/%,build/%.txt,$(DomainStylesList))
 BuildFonts := $(patsubst src/%.woff2,build/%.txt,$(FontsList))
 BuildIcons := $(patsubst src/%.svg,build/%.svgz.txt,$(IconsList))
 BuildImages := $(patsubst src/%.jpg,build/%.txt,$(JpegList))
 SiteImages := $(patsubst src/static_assets/%,%,$(JpegList))
+
+BuildScripts := $(patsubst src/%,build/%.txt,$(ScriptsList)) # TODO webpack
+SiteScripts := $(patsubst src/static_assets/%,%,$(ScriptsList))
 
 .PHONY: assets
 assets: deploy/static-assets.tar
@@ -29,6 +33,9 @@ icons: $(BuildIcons)
 
 .PHONY: images
 images: $(BuildImages)
+
+.PHONY: scripts
+scripts: $(BuildScripts)
 
 .PHONY: watch-assets
 watch-assets:
@@ -119,6 +126,7 @@ build/static_assets/icons/%.svgz.txt: src/static_assets/icons/%.svg
     podman run --rm --interactive ${ZOPFLI} | \
 		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
 		'cat - > icons/$(*).svgz'
+	@cp $< $@
 
 .PHONY: icons-list
 icons-list:
@@ -192,12 +200,24 @@ images-clean:
 ### SCRIPTS ###
 ### TODO webpack
 ################
-build/static_assets/scripts/%.txt: src/static_assets/scripts/%.js
+build/static_assets/%.txt: src/static_assets/%.js
 	@echo "##[ $< ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@bin/xq link $(DOMAIN) scripts/$(*).js | tee $@
+	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
+	@cat $< \
+		| podman run --interactive --rm ${ZOPFLI} \
+		| podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) \
+	    'cat - > $(*).js.gz'
+	@#cp $< $@
 
-deploy/static-assets.tar: styles fonts icons images
+.PHONY: scripts-list
+scripts-list:
+	@echo '## $(@) ##'
+	@podman run --rm --mount $(MountAssets) $(ALPINE) ls -alR . | grep -oP 'gz'
+
+	@#bin/xq link $(DOMAIN) scripts/$(*).js | tee $@
+
+deploy/static-assets.tar: styles fonts icons images scripts
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo ' - tar the "static-assets" volume into deploy directory'
 	@podman run --interactive --rm --mount $(MountAssets)  \
