@@ -14,10 +14,10 @@ jobs:
         run: |
           source .env
           ALPINE=ghcr.io/grantmacken/podx-alpine:${GHPKG_ALPINE_VER}
-          ZOPFLI=ghcr.io/grantmacken/podx-zopfli:$(GHPKG_ZOPFLI_VER)
-          CSSNANO=ghcr.io/grantmacken/podx-cssnano:$(GHPKG_CSSNANO_VER)
-          MAGICK=ghcr.io/grantmacken/podx-magick:$(GHPKG_MAGICK_VER)
-          WEBPACK=ghcr.io/grantmacken/podx-webpack:$(GHPKG_WEBPACK_VER)
+          ZOPFLI=ghcr.io/grantmacken/podx-zopfli:${GHPKG_ZOPFLI_VER}
+          CSSNANO=ghcr.io/grantmacken/podx-cssnano:${GHPKG_CSSNANO_VER}
+          MAGICK=ghcr.io/grantmacken/podx-magick:${GHPKG_MAGICK_VER}
+          WEBPACK=ghcr.io/grantmacken/podx-webpack:${GHPKG_WEBPACK_VER}
           podman pull $ALPINE
           podman pull $ZOPFLI
           podman pull $CSSNANO
