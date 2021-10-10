@@ -8,12 +8,20 @@ CommonStylesList := $(wildcard src/static_assets/styles/*.css)
 IconsList := $(wildcard src/static_assets/icons/*.svg)
 FontsList := $(wildcard src/static_assets/fonts/*.woff2)
 JpegList :=  $(wildcard src/static_assets/images/*/*.jpg)
+ScriptsList := $(wildcard src/static_assets/scripts/*.js)
 
 BuildStyles := $(patsubst src/%,build/%.txt,$(DomainStylesList))
 BuildFonts := $(patsubst src/%.woff2,build/%.txt,$(FontsList))
-BuildIcons := $(patsubst src/%.svg,build/%.svgz.txt,$(IconsList))
 BuildImages := $(patsubst src/%.jpg,build/%.txt,$(JpegList))
 SiteImages := $(patsubst src/static_assets/%,%,$(JpegList))
+
+BuildIcons := $(patsubst src/%.svg,build/%.svgz.txt,$(IconsList))
+SiteIcons := $(patsubst src/static_assets/%,/opt/proxy/html/%.svgz,$(IconsList))
+
+BuildScripts := $(patsubst src/%,build/%.txt,$(ScriptsList)) # TODO webpack
+SiteScripts := $(patsubst src/static_assets/%,/opt/proxy/html/%.gz,$(ScriptsList))
+
+FileSize = $(shell ls -lh $1 | tr -s ' ' | cut -d ' ' -f 5)
 
 .PHONY: assets
 assets: deploy/static-assets.tar
@@ -30,6 +38,9 @@ icons: $(BuildIcons)
 .PHONY: images
 images: $(BuildImages)
 
+.PHONY: scripts
+scripts: $(BuildScripts)
+
 .PHONY: watch-assets
 watch-assets:
 	@while true; do \
@@ -45,20 +56,9 @@ assets-clean:
 	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
 	@podman run --rm --mount $(MountAssets) $(ALPINE) rm -rv $${domain}
 
-.PHONY: assets-check
-assets-check:
-	@echo '## $(@) ##'
-	@$(DASH) 
-	@podman run --pod $(POD) --interactive --rm  --mount $(MountAssets) \
-		--entrypoint "sh" $(OR) -c 'ls -al /opt/proxy/html/icons'
-	@curl -v http://example.com:8080/icons/article
-	@echo && $(DASH) 
-
 .PHONY: assets-list
 assets-list:
-	@echo '## $(@) ##'
-	@podman run --interactive --rm --mount $(MountAssets) --workdir /opt/proxy/html \
-		localhost/alpine 'ls -alR .'
+	@podman run  --rm --mount $(MountAssets) $(ALPINE) ls -alR fonts icons images
 
 ################
 ### STYLES ###
@@ -97,10 +97,12 @@ styles-list:
 build/static_assets/%.txt: src/static_assets/%.woff2
 	@echo "##[ $(notdir $< ) ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	podman run --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE) 'mkdir -p fonts'
+	@podman run --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE) 'mkdir -p fonts'
 	@cat $< | \
 		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
 		'cat - > ./fonts/$(notdir $< )'
+	@echo ' - in static-asset volume: /opt/proxy/html/$(*).woff2' | tee $@
+	@echo " - font size: $(call FileSize, $<)" | tee -a $@
 
 .PHONY: fonts-list
 fonts-list:
@@ -112,19 +114,32 @@ fonts-list:
 #############
 # these are in the commons
 
-build/static_assets/icons/%.svgz.txt: src/static_assets/icons/%.svg
-	@echo "##[ $* ]##"
+build/static_assets/%.svgz: src/static_assets/%.svg
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo "SRC: [ $<  ]"
+	@podman run --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE) 'mkdir -p icons'
+	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
 	@cat $< | \
     podman run --rm --interactive ${ZOPFLI} | \
-		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
-		'cat - > icons/$(*).svgz'
+		podman run --interactive --rm --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
+		'cat - > $(*).svgz && cat $(*).svgz' > $@
+
+build/static_assets/%.svgz.txt: build/static_assets/%.svgz
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo 'Static Asset: $(shell podman run --rm --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) 'ls $(*).svgz')' | tee  $@
+	@echo " Origin Size: $(call FileSize,src/static_assets/$(*).svg)" | tee -a $@
+	@echo " Result Size: $(call FileSize, $<)" | tee -a $@
 
 .PHONY: icons-list
 icons-list:
 	@echo '## $(@) ##'
 	@podman run --rm --mount $(MountAssets) $(ALPINE) ls icons
 
+.PHONY: icons-clean
+icons-clean:
+	@echo '## $(@) ##'
+	@rm -fv $(BuildIcons)
+	@podman run --rm --mount $(MountAssets) $(ALPINE) sh -c 'rm -fv $(SiteIcons)'
 
 ################
 ###  IMAGES  ###
@@ -185,19 +200,46 @@ images-list:
 images-clean:
 	@echo '## $(@) ##'
 	@rm -fv $(BuildImages)
-	@#echo $(SiteImages)
 	@podman run --rm --mount $(MountAssets) $(ALPINE) sh -c 'rm -fv $(SiteImages)'
 	
 ################
 ### SCRIPTS ###
 ### TODO webpack
-################
-build/static_assets/scripts/%.txt: src/static_assets/scripts/%.js
-	@echo "##[ $< ]##"
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@bin/xq link $(DOMAIN) scripts/$(*).js | tee $@
+###############
+#OnServerSize = $(shell  podman run --rm  --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) \
+	'ls -lh /opt/proxy/html/$(*).js.gz' | awk -F " " {'print $$5'})
 
-deploy/static-assets.tar: styles fonts icons images
+build/static_assets/%.js.gz: src/static_assets/%.js
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
+	@podman run --rm --mount $(MountAssets) $(ALPINE) ls $(dir $*)
+	@echo "SRC: [ $* ]"
+	@cat $< \
+		| podman run --interactive --rm ${ZOPFLI} \
+		| podman run --interactive --rm --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) \
+		'cat - > $(*).js.gz && cat $(*).js.gz' > $@
+
+build/static_assets/%.js.txt: build/static_assets/%.js.gz
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo 'Static Asset: $(shell podman run --rm --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) 'ls $(*).js.gz')' | tee  $@
+	@echo " Origin Size: $(call FileSize,src/static_assets/$(*).js)" | tee -a $@
+	@echo " Result Size: $(call FileSize, $<)" | tee -a $@
+
+
+.PHONY: scripts-list
+scripts-list:
+	@echo '## $(@) ##'
+	@podman run --rm --mount $(MountAssets) --entrypoint '["sh", "-c"]'  $(ALPINE) \
+		'ls -alR ./scripts'
+
+.PHONY: scripts-clean
+scripts-clean:
+	@echo '## $(@) ##'
+	@rm -v $(BuildScripts) || true
+	@podman run --rm --mount $(MountAssets) --entrypoint '["sh", "-c"]'  $(ALPINE) \
+		'rm -v $(SiteScripts)' || true
+
+deploy/static-assets.tar: styles fonts icons images scripts
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo ' - tar the "static-assets" volume into deploy directory'
 	@podman run --interactive --rm --mount $(MountAssets)  \
