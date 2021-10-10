@@ -19,6 +19,8 @@ SiteImages := $(patsubst src/static_assets/%,%,$(JpegList))
 BuildScripts := $(patsubst src/%,build/%.txt,$(ScriptsList)) # TODO webpack
 SiteScripts := $(patsubst src/static_assets/%,/opt/proxy/html/%.gz,$(ScriptsList))
 
+OriginSize = $(shell ls -lh $1 | tr -s " " | cut -d ' ' -f 5)
+
 .PHONY: assets
 assets: deploy/static-assets.tar
 
@@ -104,10 +106,12 @@ styles-list:
 build/static_assets/%.txt: src/static_assets/%.woff2
 	@echo "##[ $(notdir $< ) ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	podman run --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE) 'mkdir -p fonts'
+	@podman run --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE) 'mkdir -p fonts'
 	@cat $< | \
 		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
 		'cat - > ./fonts/$(notdir $< )'
+	@echo ' - in static-asset volume: /opt/proxy/html/$(*).woff2' | tee $@
+	@echo " - font size: $(call OriginSize, $<)" | tee -a $@
 
 .PHONY: fonts-list
 fonts-list:
@@ -119,13 +123,17 @@ fonts-list:
 #############
 # these are in the commons
 
-build/static_assets/icons/%.svgz.txt: src/static_assets/icons/%.svg
+build/static_assets/%.svgz.txt: src/static_assets/%.svg
 	@echo "##[ $* ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@podman run --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE) 'mkdir -p icons'
+	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
 	@cat $< | \
     podman run --rm --interactive ${ZOPFLI} | \
-		podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
-		'cat - > icons/$(*).svgz'
+		podman run --interactive --rm --mount $(MountAssets) --entrypoint '["/bin/sh", "-c"]' $(ALPINE)  \
+		'cat - > $(*).svgz'
+	@echo ' - in static-asset volume: /opt/proxy/html/$(*).svgz' | tee $@
+	@echo " - font size: $(call OriginSize, $<)" | tee -a $@
 	@cp $< $@
 
 .PHONY: icons-list
@@ -200,7 +208,6 @@ images-clean:
 ### SCRIPTS ###
 ### TODO webpack
 ###############
-OriginSize = $(shell ls -lh $1 | cut -d ' ' -f 5)
 #OnServerSize = $(shell  podman run --rm  --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) \
 	'ls -lh /opt/proxy/html/$(*).js.gz' | awk -F " " {'print $$5'})
 ServerScriptSize = $(shell podman run --rm  --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) 'ls -lh $1 | tr -s " " | cut -d " " -f 5') 
