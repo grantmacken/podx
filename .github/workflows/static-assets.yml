@@ -11,13 +11,19 @@ jobs:
         with:
           fetch-depth: 1
       - name: podman pull our images
-        run: make pods-pull-essential && make pods-pull-helpers
+        run: |
+          source .env
+          ALPINE=ghcr.io/grantmacken/podx-alpine:${GHPKG_ALPINE_VER}
+          ZOPFLI=ghcr.io/grantmacken/podx-zopfli:$(GHPKG_ZOPFLI_VER)
+          CSSNANO=ghcr.io/grantmacken/podx-cssnano:$(GHPKG_CSSNANO_VER)
+          MAGICK=ghcr.io/grantmacken/podx-magick:$(GHPKG_MAGICK_VER)
+          WEBPACK=ghcr.io/grantmacken/podx-webpack:$(GHPKG_WEBPACK_VER)
+          podman pull $ALPINE
+          podman pull $ZOPFLI
+          podman pull $CSSNANO
+          podman pull $MAGICK
       - name: podman create our volumes for podx
         run: make volumes
-      - name: create the podx pod
-        run: make podx
-      - name: start xq running in the podx pod
-        run: make xq
       - name: add assets into static-assets volume
         run: make assets
       - name: Archive production artifacts

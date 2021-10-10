@@ -54,20 +54,9 @@ assets-clean:
 	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
 	@podman run --rm --mount $(MountAssets) $(ALPINE) rm -rv $${domain}
 
-.PHONY: assets-check
-assets-check:
-	@echo '## $(@) ##'
-	@$(DASH) 
-	@podman run --pod $(POD) --interactive --rm  --mount $(MountAssets) \
-		--entrypoint "sh" $(OR) -c 'ls -al /opt/proxy/html/icons'
-	@curl -v http://example.com:8080/icons/article
-	@echo && $(DASH) 
-
 .PHONY: assets-list
 assets-list:
-	@echo '## $(@) ##'
-	@podman run --interactive --rm --mount $(MountAssets) --workdir /opt/proxy/html \
-		localhost/alpine 'ls -alR .'
+	@podman run  --rm --mount $(MountAssets) $(ALPINE) ls -alR fonts icons images
 
 ################
 ### STYLES ###
