@@ -17,7 +17,7 @@ BuildImages := $(patsubst src/%.jpg,build/%.txt,$(JpegList))
 SiteImages := $(patsubst src/static_assets/%,%,$(JpegList))
 
 BuildScripts := $(patsubst src/%,build/%.txt,$(ScriptsList)) # TODO webpack
-SiteScripts := $(patsubst src/static_assets/%,%,$(ScriptsList))
+SiteScripts := $(patsubst src/static_assets/%,/opt/proxy/html/%.gz,$(ScriptsList))
 
 .PHONY: assets
 assets: deploy/static-assets.tar
@@ -199,23 +199,36 @@ images-clean:
 ################
 ### SCRIPTS ###
 ### TODO webpack
-################
-build/static_assets/%.txt: src/static_assets/%.js
+###############
+OriginSize = $(shell ls -lh $1 | cut -d ' ' -f 5)
+#OnServerSize = $(shell  podman run --rm  --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) \
+	'ls -lh /opt/proxy/html/$(*).js.gz' | awk -F " " {'print $$5'})
+ServerScriptSize = $(shell podman run --rm  --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) 'ls -lh $1 | tr -s " " | cut -d " " -f 5') 
+build/static_assets/%.js.txt: src/static_assets/%.js
 	@echo "##[ $< ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@podman run --rm --mount $(MountAssets) $(ALPINE) mkdir -p $(dir $*)
 	@cat $< \
 		| podman run --interactive --rm ${ZOPFLI} \
 		| podman run --interactive --rm  --mount $(MountAssets) --entrypoint '["sh", "-c"]' $(ALPINE) \
-	    'cat - > $(*).js.gz'
-	@#cp $< $@
+	    'cat - > /opt/proxy/html/$(*).js.gz'
+	@echo ' - in static-asset volume: /opt/proxy/html/$(*).js.gz' | tee $@
+	@echo ' - compressed with: zopfli ' | tee -a $@
+	@echo " - orginal size: $(call OriginSize, $<)" | tee -a $@
+	@echo " - on server size: $(call ServerScriptSize,/opt/proxy/html/$(*).js.gz)" | tee -a $@
 
 .PHONY: scripts-list
 scripts-list:
 	@echo '## $(@) ##'
-	@podman run --rm --mount $(MountAssets) $(ALPINE) ls -alR . | grep -oP 'gz'
+	@podman run --rm --mount $(MountAssets) --entrypoint '["sh", "-c"]'  $(ALPINE) \
+		'ls -alR ./scripts'
 
-	@#bin/xq link $(DOMAIN) scripts/$(*).js | tee $@
+.PHONY: scripts-clean
+scripts-clean:
+	@echo '## $(@) ##'
+	@rm -v $(BuildScripts) || true
+	@podman run --rm --mount $(MountAssets) --entrypoint '["sh", "-c"]'  $(ALPINE) \
+		'rm -v $(SiteScripts)' || true
 
 deploy/static-assets.tar: styles fonts icons images scripts
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)

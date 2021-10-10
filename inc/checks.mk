@@ -9,9 +9,10 @@ Cross = printf "\033[31m✘ \033[0m %s" $1
 #CONNECT_TO := --connect-to xq:80:xq.$(NETWORK):$(XQERL_PORT) 
 #CURL := docker run --rm --interactive --network $(NETWORK) $(CURL_IMAGE) $(CONNECT_TO)
 ##################################################################
-# https://ec.haxx.se/usingcurl/usingcurl-verbose/usingcurl-writeout
+## https://everything.curl.dev/usingcurl/verbose/writeout
 ##################################################################
 WriteOut := '\
+url [ %{url} ]\n\
 response code [ %{http_code} ]\n\
 content type  [ %{content_type} ]\n\
 SSL verify    [ %{ssl_verify_result} ] should be zero \n\
@@ -56,13 +57,14 @@ ServesContentType = if $(call HasHeaderKey,$(1),$(2)); then \
  else $(call Cross,'- header [ $2 ] should value [ $3 ] ');echo;false;fi\
  else $(call Cross,'- header [ $2 ] should have value [ $3 ] ');echo;false;fi
 
-
-.PHONY: check-clean
+PHONY: check-clean
 check-clean:
 	@rm -fr checks
 
 .PHONY: check
-check: checks/$(DOMAIN)/home/index checks/$(DOMAIN)/styles/index
+check: checks/$(DOMAIN)/home/index \
+	checks/$(DOMAIN)/styles/index \
+  checks/$(DOMAIN)/scripts/prism
 
 checks/$(DOMAIN)/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
@@ -74,12 +76,14 @@ checks/$(DOMAIN)/home/index:
  --dump-header $(dir $@)/$(notdir $@).headers \
  --output $(dir $@)/$(notdir $@).html \
  https://$(DOMAIN):8443/home/index > $@
+	@#$(DASH)
+	@#cat $@
+	@#echo && $(DASH)
+	@#cat $@.html
+	@#echo && $(DASH)
+	@#cat $@.headers
 	@$(DASH)
-	@cat $@
-	@echo && $(DASH)
-	@cat $@.html
-	@echo && $(DASH)
-	@cat $@.headers
+	@grep url $@
 	@$(DASH)
 	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
 	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
@@ -97,12 +101,15 @@ checks/$(DOMAIN)/styles/index:
  --output $(dir $@)/$(notdir $@).css \
  https://$(DOMAIN):8443/styles/index > $@
 	@$(DASH)
-	@cat $@
-	@echo && $(DASH)
-	@cat $@.css
-	@echo && $(DASH)
-	@cat $@.headers
+	@grep url $@
 	@$(DASH)
+	@#$(DASH)
+	@#cat $@
+	@#echo && $(DASH)
+	@#cat $@.css
+	@#echo && $(DASH)
+	@#cat $@.headers
+	@#$(DASH)
 	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
 	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
 	@$(call HasHeaderKeyShowValue,$@.headers,server)
@@ -110,6 +117,28 @@ checks/$(DOMAIN)/styles/index:
 	@$(call HasHeaderKeyShowValue,$@.headers,vary)
 	@$(DASH)
 
-# fHeader = $(patsubst %/$(1),%/headers-$(1),$(2)) # 1=file 2=headerKey
-
-
+checks/$(DOMAIN)/scripts/prism:
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@curl --silent --show-error \
+ --cacert src/proxy/certs/example.com.pem \
+ --write-out $(WriteOut) \
+ --connect-timeout 1 \
+ --max-time 2 \
+ --dump-header $(dir $@)/$(notdir $@).headers \
+ --output $(dir $@)/$(notdir $@).js \
+ https://$(DOMAIN):8443/scripts/prism > $@
+	@#$(DASH)
+	@#cat $@
+	@#echo && $(DASH)
+	@#cat $@.js
+	@#echo && $(DASH)
+	@#cat $@.headers
+	@#$(DASH)
+	@$(DASH)
+	@grep url $@
+	@$(DASH)
+	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
+	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
+	@$(call HasHeaderKeyShowValue,$@.headers,server)
+	@$(call HasHeaderKeyShowValue,$@.headers,date)
+	@$(DASH)
