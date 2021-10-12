@@ -1,0 +1,11 @@
+name: podx coreos
+on:
+  push:
+    branches: coreos*
+jobs:
+  build:
+    runs-on: fcos
+    steps:
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: podman run --rm fedora-minimal:34 echo Hello World !
