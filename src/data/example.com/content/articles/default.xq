@@ -44,9 +44,12 @@ function( $map) {
       element header { 
         attribute role { 'banner' },
         element h1 { 
-          if( $map?item = 'index') 
-          then  ($map?domain,$map?collection,$map?item => translate('-', ' '),' page')
-          else $map?item => translate('-', ' ')
+          if ( $map => map:contains('title'))
+          then $map?title
+          else
+            if( $map?item = 'index') 
+            then  ($map?domain,$map?collection,$map?item => translate('-', ' '),' page')
+            else $map?item => translate('-', ' ')
           }
         },
       element nav {

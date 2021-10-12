@@ -40,11 +40,15 @@ function($map) {
     element body {
       element header { 
         attribute role { 'banner' },
-        element h1 { $map?domain }
+        element h1 { 
+          if ( $map => map:contains('title'))
+          then $map?title
+          else $map?domain 
+          }
         },
       element main { 
         element article { 
-          $map?content/node()
+           $map?content/node()
           },
         element aside { 
           element nav { 

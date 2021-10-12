@@ -2,6 +2,17 @@ xquery version "3.1";
 module namespace _ = "http://xq/#cmarkup";
 declare namespace cm ="http://commonmark.org/xml/1.0";
 
+declare
+function _:frontmatter( $body as document-node() ) as map(*) {
+ try{ 
+  if ( $body/cm:document/cm:html_block[1]/comment() )
+  then 
+    $body/cm:document/cm:html_block[1]/comment() 
+    => string() 
+    => parse-json()
+  else map {}
+  } catch * { map {} }
+};
 
 (:~
 recursive typeswitch descent for a commonmark XML document

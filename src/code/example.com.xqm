@@ -31,24 +31,30 @@ function _:collection-item( $sCollection, $sItem ){
   }
   let $dbCmark       := string-join(($_:dbBase,$sCollection,$sItem || '.cmark'),'/' )
   let $hasCmark := $dbCmark = ($dbItemList)
+  let $docCmark := 
+    if( $hasCmark ) 
+    then ( $dbCmark => db:get() ) 
+    else ()
   let $contentMap := if( $hasCmark ) then ( 
     (: create map with map constructor :)
-     map{ 'content':   $dbCmark => db:get() => cm:dispatch() }
+     map{ 'content':   $docCmark => cm:dispatch() }
   ) else ( map {} )
-
-  (: the site data map - site wide data :)
-  let $dbSiteData := string-join(($_:dbBase,'site.map'),'/' )
-  let $siteMap :=  try{$dbSiteData => db:get()} catch * { map {} }
-
- (: the collection data map - data for all items in collection :)
-  let $dbCollectionData := string-join(($_:dbBase,$sCollection,'default.map'),'/' )
-  let $hasCollectionData := $dbCollectionData = ($dbItemList)
-  let $collectionMap := if( $hasCollectionData ) then ( $dbCollectionData => db:get() ) else ( map {} )
-
- (: the page data map - data for a single page:)
+  (: the frontmatter data map:  dirived from frontmatter in md doc:)
+  let $fmMap := if( $hasCmark ) then ( 
+    (: create map with map constructor :)
+     $docCmark => cm:frontmatter() 
+  ) else ( map {} )
+ (: page data: {domain}/content/{collection}/{item}.json - data for a single page item :)
   let $dbPageData := string-join(($_:dbBase,$sCollection,$sItem || '.map'),'/' )
   let $hasPageData := $dbPageData = ($dbItemList)
   let $pageMap := if( $hasPageData ) then ( $dbPageData => db:get() ) else ( map {} )
+ (: collection data: {domain}/content/{collection}/default.json - data for all items in collection :)
+  let $dbCollectionData := string-join(($_:dbBase,$sCollection,'default.map'),'/' )
+  let $hasCollectionData := $dbCollectionData = ($dbItemList)
+  let $collectionMap := if( $hasCollectionData ) then ( $dbCollectionData => db:get() ) else ( map {} )
+  (: site data: {domain}/content/default.json - domain site wide data :)
+  let $dbSiteData := string-join(($_:dbBase,'site.map'),'/' )
+  let $siteMap :=  try{$dbSiteData => db:get()} catch * { map {} }
 
   let $dbCollectionTemplate := string-join(($_:dbBase,$sCollection, 'default.tpl'),'/' )
   let $dbCollectionIndexTemplate := string-join(($_:dbBase,$sCollection, 'default.tpl'),'/' )
@@ -68,7 +74,7 @@ function _:collection-item( $sCollection, $sItem ){
   (: TODO  merge maps :)
   return(
   _:status( 200, 'OK', 'text/html'),
-  map:merge(( $resMap, $siteMap, $collectionMap, $pageMap, $contentMap ))  => $tplFunction() 
+  map:merge(( $resMap, $siteMap, $collectionMap, $pageMap, $fmMap, $contentMap ))  => $tplFunction() 
 )} catch * {(
   map { 'code' : $err:code,
         'description' : $err:description,
