@@ -64,7 +64,7 @@ xq:
 		 --mount $(MountCode) --mount $(MountData) \
 		 --name xq \
 		--detach $(XQ)
-	@sleep 3
+	@sleep 2
 	@bin/xq eval 'application:ensure_all_started(xqerl).'
 	@# after xq is up then compile code 
 	@$(MAKE) code

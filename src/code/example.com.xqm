@@ -5,13 +5,11 @@ declare namespace rest = "http://exquery.org/ns/restxq";
 declare namespace http = "http://expath.org/ns/http-client";
 declare namespace output = "http://www.w3.org/2010/xslt-xquery-serialization";
 declare namespace err = "http://www.w3.org/2005/xqt-errors";
-
 declare variable $_:container := 'xq';
 declare variable $_:domain := 'example.com';
 (: cmark docs found in the domains content dir :)
 declare variable $_:dbBase  := string-join(('http:','',$_:domain,'content' ),'/');
 declare variable $_:pubBase := string-join(('https:','',$_:domain),'/');
-
 declare
   %rest:path("/example.com/content/{$sCollection}/{$sItem}")
   %rest:GET
@@ -22,12 +20,14 @@ function _:collection-item( $sCollection, $sItem ){
   let $sType := 'entry'
   let $pubURL       := string-join(($_:pubBase,$sCollection,$sItem),'/' )
   let $dbCollection := string-join(($_:dbBase,$sCollection),'/' )
-  let $dbItemList := $dbCollection => fn:uri-collection()
+  let $dbItemList := $dbCollection => uri-collection()
   let $resMap := map { 
-  "collection" : $sCollection,
-  "item" : $sCollection,
-  'db-collection' : $dbCollection,
-  'uri' : $pubURL
+  "domain": $_:domain,
+  "collection": $sCollection,
+  "item": $sItem,
+  'db-collection': $dbCollection,
+  'uri' : $pubURL,
+  'base-uri' : $_:pubBase
   }
   let $dbCmark       := string-join(($_:dbBase,$sCollection,$sItem || '.cmark'),'/' )
   let $hasCmark := $dbCmark = ($dbItemList)
