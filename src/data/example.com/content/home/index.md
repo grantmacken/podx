@@ -1,4 +1,6 @@
-
+<!--
+{"title":"my interesting page title"}
+-->
 
  [xqerl](https://zadean.github.io/xqerl)
  maintained by 
@@ -9,3 +11,4 @@ xQuery 3.1 Processor:
 * a well tested xQuery 3.1 Processor
 * built for xQuery 3.1, with no prior baggage making it more lean.
 * built with erlang, compiled to run as a **reliable** OTP beam application
+
