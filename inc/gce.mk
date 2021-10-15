@@ -38,8 +38,11 @@ gce-view:
 	@#$(Gcmd) 'sudo podman inspect xq' | jq '.[].Config.Env'
 	@#$(Gcmd) 'sudo podman inspect xq' | jq '.[].NetworkSettings.Networks.podman.Gateway'
 	@#$(Gcmd) 'sudo podman inspect xq' | jq '.[].NetworkSettings.Networks.podman.IPAddress'
-	@$(Gcmd) 'sudo podman inspect xq' | jq '.[].NetworkSettings.Networks.podman.IPAddress'
+	@# $(Gcmd) 'sudo podman inspect xq' | jq '.[].NetworkSettings.Networks.podman.IPAddress'
 	@#$(Gcmd) 'sudo podman run --pod $(POD) --net podman --rm $(W3M) -dump_source http://10.88.0.44:8081/example.com/content/home/index'
+	@$(Gcmd) "sudo podman run --rm  \
+    --mount  $(MountCerts) \
+		--entrypoint '[\"/bin/sh\", \"-c\"]' $(CURL) 'ls /opt/proxy/certs'"
 
 PHONEY: gce-clean
 gce-clean: 
@@ -73,7 +76,6 @@ gce-pull: # --publish 80:80 --publish 443:443
 	@$(Gcmd) 'sudo podman pull $(ALPINE)'
 	@$(Gcmd) 'sudo podman pull $(OR)'
 	@$(Gcmd) 'sudo podman pull $(XQ)'
-	@$(Gcmd) 'sudo podman pull $(W3M)'
 	@$(Gcmd) 'sudo podman pull $(CURL)'
 	@$(Gcmd) 'sudo podman image list'
 
