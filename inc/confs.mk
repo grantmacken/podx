@@ -5,13 +5,14 @@
 #
 ConfList   := $(filter-out src/proxy/conf/reverse_proxy.conf , $(wildcard src/proxy/conf/*.conf)) src/proxy/conf/reverse_proxy.conf
 BuildConfs := $(patsubst src/%.conf,build/%.conf,$(ConfList))
-SiteConfs := $(patsubst src/%.conf,check/%.conf,$(filter-out src/proxy/conf/self_signed.conf, $(ConfList)))
+CheckConfs := $(patsubst src/%.conf,check/%.conf,$(filter-out src/proxy/conf/self_signed.conf, $(ConfList)))
+SiteConfs := $(patsubst src/%.conf,/opt/%.conf,$(ConfList))
 
 .PHONY: confs
-confs: build/proxy/conf/mime.types $(BuildConfs)
+confs: deploy/proxy-conf.tar
 
 .PHONY: confs-check
-confs-check: $(SiteConfs)
+confs-check: $(CheckConfs)
 
 .PHONY: watch-confs
 watch-confs:
@@ -24,8 +25,8 @@ watch-confs:
 confs-clean:
 	@echo '## $(@) ##'
 	@rm -fv $(BuildConfs)
-	@rm -fv deploy/nginx-configuration.tar
-	@podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv '
+	@rm -fv deploy/proxy-conf.tar
+	@podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv $(SiteConfs)' || true
 
 .PHONY: confs-list
 confs-list:
@@ -43,12 +44,16 @@ confs-list:
 build/proxy/conf/%.conf: src/proxy/conf/%.conf
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $@ ##'
+	@#podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'mkdir -p /opt/proxy/conf' 
 	@cat $< | podman run --interactive --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) \
-		 'cat - > /opt/proxy/conf/$(notdir $<) && cat /opt/proxy/conf/$(notdir $<)' > $@
+		 'cat - > /opt/proxy/conf/$(notdir $<) && ls /opt/proxy/conf/$(notdir $<)' > $@
 	@if podman inspect --format="{{.State.Running}}" or &>/dev/null
 	then
-	podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t
-	podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -s reload
+	  if podman exec or ls /opt/proxy/conf/reverse_proxy.conf &>/dev/null
+	  then
+	  podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t
+	  podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -s reload
+		fi
 	fi
 
 check/proxy/conf/%.conf: build/proxy/conf/%.conf
@@ -67,7 +72,7 @@ build/proxy/conf/mime.types: src/proxy/conf/mime.types
 		 -c 'cat - > /opt/proxy/conf/$(notdir $<)'
 	@cp $< $@
 
-deploy/proxy-conf.tar: $(BuildConfs)
+deploy/proxy-conf.tar: build/proxy/conf/mime.types $(BuildConfs)
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@#echo ' - tar the "nginx-confguration" volume into deploy directory'
 	@podman run  --interactive --rm  --mount $(MountProxyConf)  \

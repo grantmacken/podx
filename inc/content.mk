@@ -10,9 +10,10 @@ BuildTemplate := $(patsubst src/%.xq,build/%.tpl.txt,$(TemplateList))
 BuildDataMap  := $(patsubst src/%.json,build/%.map.txt,$(DataMapList))
 # build/html/%.html: build/data/%.cmark.txt
 PHONY: content
-content: $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap)
+content: deploy/xqerl-database.tar
+
 PHONY: content-tar
-content-tar: deploy deploy/xqerl-database.tar
+content-tar: 
 
 .PHONY: watch-content
 watch-content:
@@ -20,8 +21,6 @@ watch-content:
         clear && $(MAKE) --silent content 2>/dev/null || true; \
         inotifywait -qre close_write ./src/data/$(DOMAIN)/content/ || true; \
     done
-
-CONTENT := home/articles/reverse-proxy-setup
 
 PHONY: content-view
 content-view:
@@ -87,7 +86,7 @@ build/data/%.tpl.txt: src/data/%.xq
 	@bin/xq put $< | tee $@
 	@grep -q 'XDM item: function' $@
 
-deploy/xqerl-database.tar:
+deploy/xqerl-database.tar: $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap)
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@podman run  --interactive --rm  --mount $(MountData)  \
 	 --entrypoint "tar" $(ALPINE) -czf - /usr/local/xqerl/data 2>/dev/null > $@

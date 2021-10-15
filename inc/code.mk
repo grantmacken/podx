@@ -10,10 +10,7 @@ CodeMainModules  :=  $(wildcard src/code/*.xq)
 BuildMainCode := $(patsubst src/%.xq,build/%.xq.txt,$(CodeMainModules))
 
 PHONY: code # compile all xQuery library modules files in src/code
-code: $(BuildLibCode) $(BuildMainCode)
-
-PHONY: code-tar
-code-tar: deploy/xqerl-compiled-code.tar # deploy/xqerl-compiled-code.tar
+code: deploy/xqerl-code-source.tar
 
 .PHONY: watch-code
 watch-code:
@@ -73,7 +70,7 @@ build/code/%.xq.txt: src/code/%.xq
 	false
 	fi
 
-deploy/code.tar:
+deploy/xqerl-code-source.tar: $(BuildLibCode) $(BuildMainCode)
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@podman run  --interactive --rm  --mount $(MountCode)  \
-	 --entrypoint "tar" $(XQ) -czf - $(XQERL_HOME)/code 2>/dev/null > $@
+	 --entrypoint "tar" $(XQ) -czf - /usr/local/xqerl/code/src 2>/dev/null > $@

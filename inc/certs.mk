@@ -2,9 +2,15 @@
 # self signed certs for example.com
 ##############
 
+deploy/certs.tar: certs-volume certs-pem
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@#echo ' - tar the "nginx-confguration" volume into deploy directory'
+	@podman run  --interactive --rm  --mount $(MountCerts) \
+	 --entrypoint "tar" $(ALPINE) -czf - /opt/proxy/certs 2>/dev/null > $@
+
 certs-volume: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem
 certs-conf:  src/proxy/conf/self_signed.conf
-certs-pem: src/proxy/certs/$(DOMAIN).pem # or must be running
+certs-pem: src/proxy/certs/example.com.pem # or must be running
 
 certs-volume-check: 
 		@podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
@@ -71,11 +77,12 @@ src/proxy/certs/dhparam.pem:
 		'cat - > /opt/proxy/certs/$(notdir $@)'
 	@podman run --rm  --mount $(MountCerts) $(ALPINE) ls -al /opt/proxy/certs
 
-
-
-src/proxy/certs/$(DOMAIN).pem:
+src/proxy/certs/example.com.pem:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir $@) ##'
-	@openssl s_client -showcerts -connect $(DOMAIN):8443 </dev/null \
+	@if podman inspect --format="{{.State.Running}}" or &>/dev/null 
+	then
+	@openssl s_client -showcerts -connect example.com:8443 </dev/null \
 		| sed -n -e '/-.BEGIN/,/-.END/ p' > $@
+	fi
 
