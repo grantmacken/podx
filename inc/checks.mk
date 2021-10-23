@@ -11,6 +11,13 @@ Cross = printf "\033[31m✘ \033[0m %s" $1
 ##################################################################
 ## https://everything.curl.dev/usingcurl/verbose/writeout
 ##################################################################
+Crl = curl --silent --show-error \
+ --cacert src/proxy/certs/example.com.pem \
+ --connect-timeout 1 \
+ --max-time 2 \
+ --dump-header $1.headers \
+ --output $(1).html  $2
+
 WriteOut := '\
 url [ %{url} ]\n\
 response code [ %{http_code} ]\n\
@@ -30,6 +37,7 @@ appconnect: [ %{time_appconnect} ] SSL handhake \n\
 pretransfer [ %{time_pretransfer} ] before transfer \n\
 transfer    [ %{time_starttransfer} ] transfer start \n\
 tansfered   [ %{time_total} ] total transfered '
+
 GrepOK =  grep -q '$(1)' $(2) # equals $1,$2
 IsOK  = if $(call GrepOK,$1,$2) ; \
  then $(call Tick, '- [ $(basename $(notdir $2)) ] $3 ');echo;true; \
@@ -57,17 +65,33 @@ ServesContentType = if $(call HasHeaderKey,$(1),$(2)); then \
  else $(call Cross,'- header [ $2 ] should value [ $3 ] ');echo;false;fi\
  else $(call Cross,'- header [ $2 ] should have value [ $3 ] ');echo;false;fi
 
-PHONY: check-clean
-check-clean:
-	@rm -fr checks
+PHONY: checks-clean
+checks-clean:
+	@rm -vfR checks
 
-.PHONY: check
-check: checks/$(DOMAIN)/home/index \
-	checks/$(DOMAIN)/styles/index \
-  checks/$(DOMAIN)/scripts/prism
+.PHONY: checks
+checks: check-homepage
+check-homepage: checks/example.com/home/index
+check-xqerl: checks/code/example.com
 
-checks/$(DOMAIN)/home/index:
+checks/code/example.com: build/code/example.com.xqm.txt
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081 | tee $@
+	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081 | tee -a $@
+	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081/example.com/content/home/index | tee -a $@
+	@grep -q 'server: Cowboy' $@
+	@grep -q 'news from erewhon' $@
+	@grep -q 'example page' $@
+	@$(DASH)
+
+checks/example.com/home/index:
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@$(call Crl,$@,https://example.com:8443/home/index)
+	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
+	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
+	@$(call HasHeaderKeyShowValue,$@.headers,server)
+
+sddddd:
 	@curl --silent --show-error \
  --cacert src/proxy/certs/example.com.pem \
  --write-out $(WriteOut) \

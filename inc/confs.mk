@@ -4,12 +4,12 @@
 # files for the proxy-conf volume
 #
 ConfList   := $(filter-out src/proxy/conf/reverse_proxy.conf , $(wildcard src/proxy/conf/*.conf)) src/proxy/conf/reverse_proxy.conf
-BuildConfs := $(patsubst src/%.conf,build/%.conf,$(ConfList))
+BuildConfs := build/proxy/conf/mime.types $(patsubst src/%.conf,build/%.conf,$(ConfList))
 CheckConfs := $(patsubst src/%.conf,check/%.conf,$(filter-out src/proxy/conf/self_signed.conf, $(ConfList)))
 SiteConfs := $(patsubst src/%.conf,/opt/%.conf,$(ConfList))
 
 .PHONY: confs
-confs: deploy/proxy-conf.tar
+confs: $(BuildConfs)
 
 .PHONY: confs-check
 confs-check: $(CheckConfs)
@@ -25,8 +25,8 @@ watch-confs:
 confs-clean:
 	@echo '## $(@) ##'
 	@rm -fv $(BuildConfs)
-	@rm -fv deploy/proxy-conf.tar
-	@podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv $(SiteConfs)' || true
+	@#rm -fv deploy/proxy-conf.tar
+	@#podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv $(SiteConfs)' || true
 
 .PHONY: confs-list
 confs-list:
@@ -43,8 +43,7 @@ confs-list:
 
 build/proxy/conf/%.conf: src/proxy/conf/%.conf
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '## $@ ##'
-	@#podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'mkdir -p /opt/proxy/conf' 
+	@echo '##[ $@ ]##'
 	@cat $< | podman run --interactive --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) \
 		 'cat - > /opt/proxy/conf/$(notdir $<) && ls /opt/proxy/conf/$(notdir $<)' > $@
 	@if podman inspect --format="{{.State.Running}}" or &>/dev/null
@@ -56,9 +55,10 @@ build/proxy/conf/%.conf: src/proxy/conf/%.conf
 		fi
 	fi
 
+
 check/proxy/conf/%.conf: build/proxy/conf/%.conf
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '## $@ ##'
+	@echo '##[ $@ ]##'
 	@podman run --interactive --rm  \
 		--mount $(MountProxyConf) \
 		--mount $(MountCerts) \
@@ -67,10 +67,9 @@ check/proxy/conf/%.conf: build/proxy/conf/%.conf
 
 build/proxy/conf/mime.types: src/proxy/conf/mime.types
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '## $@ ##'
-	@cat $< | podman run  --interactive --rm  --mount $(MountProxyConf) --entrypoint "sh" $(OPENRESTY) \
-		 -c 'cat - > /opt/proxy/conf/$(notdir $<)'
-	@cp $< $@
+	@echo '##[  $@ ]##'
+	@cat $< | podman run  --interactive --rm  --mount $(MountProxyConf)  --entrypoint '["sh", "-c"]' $(ALPINE) \
+		 'cat - > /opt/proxy/conf/$(notdir $<) && ls -l /opt/proxy/conf/$(notdir $<)' > $@
 
 deploy/proxy-conf.tar: build/proxy/conf/mime.types $(BuildConfs)
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
