@@ -57,15 +57,12 @@ ServesContentType = if $(call HasHeaderKey,$(1),$(2)); then \
  else $(call Cross,'- header [ $2 ] should value [ $3 ] ');echo;false;fi\
  else $(call Cross,'- header [ $2 ] should have value [ $3 ] ');echo;false;fi
 
-PHONY: check-clean
-check-clean:
-	@rm -fr checks
+PHONY: checks-clean
+checks-clean:
+	@rm -vfR checks
 
-.PHONY: check
-check: checks/$(DOMAIN)/home/index \
-	checks/$(DOMAIN)/styles/index \
-  checks/$(DOMAIN)/scripts/prism
-
+.PHONY: checks
+checks: check-homepage
 check-homepage: checks/example.com/home/index
 check-xqerl: checks/code/example.com
 

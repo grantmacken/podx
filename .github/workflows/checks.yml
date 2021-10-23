@@ -34,8 +34,10 @@ jobs:
         run: make xq-up
       - name: compile restXQ libary modules and other xquery modules
         run: make code
-      - name: list compiled modules
-        run: echo 'TODO'
+      - name: list files in xqerl-code volume
+        run: make code-volume-list
+      - name: list compiled xquery library modules
+        run: make code-library-list
       - name: In podx pod, check cowboy is serving on port 8081
         run: make check-xqerl
       # - name: insert data content for example.com into xqerl-database
@@ -59,5 +61,5 @@ jobs:
       - name: create a cacert pem that curl can use
         run: make certs-pem
       - name: run the checks
-        run: make check
+        run: make checks
           

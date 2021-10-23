@@ -39,22 +39,27 @@ code-clean:
 	@rm -v deploy/xqerl-compiled-code.tar || true
 	@#podman run --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQ) -c 'echo -n "container xq: " && rm -v ./code/src/*' || true
 
-.PHONY: code-list
-code-list:
+.PHONY: code-volume-list
+code-volume-list:
 	@echo '## $(@) ##'
 	@podman run --rm  --mount $(MountCode) --entrypoint '["sh","-c"]' $(XQ) \
 		'ls -al ./code/src'
 
+.PHONY: code-library-list
+code-library-list:
+	@echo '## $(@) ##'
+	if podman inspect --format="{{.State.Running}}" xq &>/dev/null
+	then
+	@podman exec xq xqerl eval '[binary_to_list(X) || X <- xqerl_code_server:library_namespaces()].' | jq '.'
+	fi
+
 build/code/%.xqm.txt: src/code/%.xqm
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '## $(notdir $<) ##'
-	@# container xq server must be running
-	@bin/xq compile $< | tee $@
-	@echo
-	@if cat $< | grep -q ':E:' 
+	@echo '##[ $(notdir $<) ]##'
+	if podman inspect --format="{{.State.Running}}" xq &>/dev/null
 	then
-	rm $@
-	false
+	@bin/xq compile $< | tee $@
+	@grep -q ':I:' $@ &>/dev/null
 	fi
 
 build/code/%.xq.txt: src/code/%.xq
