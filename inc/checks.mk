@@ -67,6 +67,16 @@ check: checks/$(DOMAIN)/home/index \
   checks/$(DOMAIN)/scripts/prism
 
 check-homepage: checks/example.com/home/index
+check-xqerl: checks/code/example.com
+
+checks/code/example.com: build/code/example.com.xqm.txt
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081 | tee $@
+	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081 | tee -a $@
+	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081/example.com/content/home/index | tee -a $@
+	@grep -q 'server: Cowboy' $@
+	@grep -q 'news from erewhon' $@
+	@grep -q 'example page' $@
 
 checks/example.com/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)

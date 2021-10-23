@@ -74,14 +74,6 @@ xq-up: podx
 	@# after xq is up then compile code 
 	@# $(MAKE) code
 
-.PHONY: check-xq-up
-check-xq-up:
-	@podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081
-	@#podman run --rm --pod $(POD) $(W3M) -dump_source http://localhost:8081
-	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081
-	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081/example.com/content/home/index
-	@podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081/example.com/
-
 .PHONY: xq-down
 xq-down: code-clean
 	@echo "##[ $(@) ]##"
