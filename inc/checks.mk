@@ -77,6 +77,7 @@ checks/code/example.com: build/code/example.com.xqm.txt
 	@grep -q 'server: Cowboy' $@
 	@grep -q 'news from erewhon' $@
 	@grep -q 'example page' $@
+	@$(DASH)
 
 checks/example.com/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
