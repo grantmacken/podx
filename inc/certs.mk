@@ -2,12 +2,7 @@
 # self signed certs for example.com
 ##############
 
-deploy/certs.tar: certs-volume certs-pem
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@#echo ' - tar the "nginx-confguration" volume into deploy directory'
-	@podman run  --interactive --rm  --mount $(MountCerts) \
-	 --entrypoint "tar" $(ALPINE) -czf - /opt/proxy/certs 2>/dev/null > $@
-
+certs: certs-volume certs-conf
 certs-volume: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem
 certs-conf:  src/proxy/conf/self_signed.conf
 certs-pem: src/proxy/certs/example.com.pem # or must be running
@@ -84,5 +79,8 @@ src/proxy/certs/example.com.pem:
 	then
 	@openssl s_client -showcerts -connect example.com:8443 </dev/null \
 		| sed -n -e '/-.BEGIN/,/-.END/ p' > $@
+	@cat $@ | \
+		podman run --rm --interactive  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
+		'cat - > /opt/proxy/certs/$(notdir $@)'
 	fi
 

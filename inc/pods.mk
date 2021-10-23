@@ -45,29 +45,42 @@ volumes:
 	@podman volume exists certs || podman volume create certs
 	@podman volume exists lualib || podman volume create lualib
 	@podman volume exists xqerl-database || podman volume create xqerl-database
-	@podman volume exists xqerl-compiled-code || podman volume create xqerl-compiled-code
+	@podman volume exists xqerl-code || podman volume create xqerl-code
 	@podman volume ls
 
 .PHONY: podx
 podx: # --publish 80:80 --publish 443:443
-	@echo "#(: $(@) :)#"
+	@echo "##[ $(@) ##]"
 	@# only open port 8080 and 8433  
 	@# or is reverse proxy for xq on port 8081
 	@# curl and w3m which attached to pod can communicate with xq on port 8081
 	@podman pod exists $(@) || podman pod create -p 8080:80 -p 8443:443 --name $(@)
 	@podman pod list
 
-.PHONY: xq # in podx listens on port 8081/tcp 
-xq:
+.PHONY: xq-up # in podx listens on port 8081/tcp 
+xq-up: podx
 	@echo "##[ $(@) ]##"
+	@if podman inspect --format="{{.State.Running}}" xq &>/dev/null
+	@then
+	@bin/xq eval 'application:ensure_all_started(xqerl).'
+	@else
 	@podman run --pod $(POD) \
 		 --mount $(MountCode) --mount $(MountData) \
 		 --name xq \
 		--detach $(XQ)
 	@sleep 2
 	@bin/xq eval 'application:ensure_all_started(xqerl).'
+	@fi
 	@# after xq is up then compile code 
-	@$(MAKE) code
+	@# $(MAKE) code
+
+.PHONY: check-xq-up
+check-xq-up:
+	@podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081
+	@#podman run --rm --pod $(POD) $(W3M) -dump_source http://localhost:8081
+	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081
+	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081/example.com/content/home/index
+	@podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081/example.com/
 
 .PHONY: xq-down
 xq-down: code-clean
@@ -75,13 +88,15 @@ xq-down: code-clean
 	@podman stop xq
 	@podman rm xq
 
-.PHONY: or # in podx listens on 80/tcp port. As podx exposes that port as 8080/tcp in the host, you can reach the app
-or: 
+.PHONY: or-up # 
+or-up: certs confs
 	@echo "##[ $(@) ]##"
-	@podman run --pod $(POD) \
-    --mount $(MountCerts) --mount $(MountProxyConf) --mount $(MountAssets) \
-		--name $(@) \
-    --detach $(OR)
+	@podman inspect --format="{{.State.Running}}" or &>/dev/null || \
+		podman run --pod $(POD) \
+		--mount $(MountCerts) --mount $(MountProxyConf) --mount $(MountAssets) \
+		--name or \
+		--detach $(OR)
+	@$(MAKE) --silent certs-pem
 	@podman ps -a --pod
 
 .PHONY: or-reload
@@ -120,7 +135,7 @@ volumes-clean: pods-clean
 	@podman volume exists letsencrypt && podman volume rm letsencrypt
 	@podman volume exists lualib && podman volume rm lualib
 	@podman volume exists xqerl-database && podman volume rm xqerl-database
-	@podman volume exists xqerl-compiled-code && podman volume rm xqerl-compiled-code
+	@podman volume exists xqerl-code && podman volume rm xqerl-code
 	@podman volume ls
 
 .PHONY: service
@@ -132,10 +147,10 @@ service:
 	@cat pod-podx.service | 
 	tee $(HOME)/.config/systemd/user/pod-podx.service
 	@cat container-xq.service | 
-	sed "19 i ExecStartPost=/bin/sleep 3" |  
-	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval 'xqerl:compile(\"code/src/view.xqm\").'" |
+	sed "19 i ExecStartPost=/bin/sleep 2" |  
+	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval 'xqerl:compile(\"code/src/example.com.xqm\").'" |
 	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval 'application:ensure_all_started(xqerl).'" |
-	sed "19 i ExecStartPost=/bin/sleep 3" |
+	sed "19 i ExecStartPost=/bin/sleep 2" |
 	tee $(HOME)/.config/systemd/user/container-xq.service
 	@cat container-or.service | 
 	sed 's/After=pod-podx.service/After=container-or.service/g' |

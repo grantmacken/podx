@@ -26,7 +26,7 @@ MountProxyConf   := type=volume,target=/opt/proxy/conf,source=proxy-conf
 MountAssets      := type=volume,target=/opt/proxy/html,source=static-assets
 MountLualib      := type=volume,target=/usr/local/openresty/site/lualib,source=lualib
 # xqerl mounts
-MountCode        := type=volume,target=/usr/local/xqerl/code,source=xqerl-compiled-code
+MountCode        := type=volume,target=/usr/local/xqerl/code,source=xqerl-code
 MountData        := type=volume,target=/usr/local/xqerl/data,source=xqerl-database
 #MountEscripts   := type=volume,target=$(XQERL_HOME)/bin/scripts,source=xqerl-escripts
 DASH = printf %60s | tr ' ' '-' && echo

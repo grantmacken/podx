@@ -66,7 +66,9 @@ check: checks/$(DOMAIN)/home/index \
 	checks/$(DOMAIN)/styles/index \
   checks/$(DOMAIN)/scripts/prism
 
-checks/$(DOMAIN)/home/index:
+check-homepage: checks/example.com/home/index
+
+checks/example.com/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@curl --silent --show-error \
  --cacert src/proxy/certs/example.com.pem \

@@ -37,8 +37,7 @@ code-clean:
 	@echo '## $(@) ##'
 	@rm -v $(BuildLibCode)  $(BuildMainCode) || true
 	@rm -v deploy/xqerl-compiled-code.tar || true
-	@podman run --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQ) \
-		-c 'echo -n "container xq: " && rm -v ./code/src/*' || true
+	@#podman run --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQ) -c 'echo -n "container xq: " && rm -v ./code/src/*' || true
 
 .PHONY: code-list
 code-list:
