@@ -36,23 +36,23 @@ jobs:
       - name: list compiled modules
         run: echo 'TODO'
       - name: In podx pod, check cowboy is serving on port 8081
-        run: check-xqerl
+        run: make check-xqerl
       # - name: insert data content for example.com into xqerl-database
       #   run: make content
       # - name: insert styles for example.com into static-assets volume
       #   run: make styles
       # - name: insert fonts for commoms into static-assets volume
       #   run: make fonts
-      # - name: insert self signed certs into certs volume
-      #   run: make certs-volume
-      # - name: create self_sign.conf for nginx
-      #   run: make certs-conf
-      # - name: insert nginx conf files into proxy-conf volume
-      #   run: make confs
-      # - name: check conf files
-      #   run: make confs-check
-      # - name: start running reverse-proxy in the pod name podx
-      #   run: make or
+      - name: insert self signed certs into certs volume
+        run: make certs-volume
+      - name: create self_sign.conf for nginx
+        run: make certs-conf
+      - name: insert nginx conf files into proxy-conf volume
+        run: make confs
+      - name: check nginx configuration files
+        run: make confs-check
+      - name: start running reverse-proxy in the podx pod
+        run: make or-up
       # - name: add example.com to hosts file
       #   run: echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
       # - name: create a cacert pem that curl can use
