@@ -1,0 +1,64 @@
+name: podx checks
+on:
+  push:
+    branches: main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: podman pull our images
+        run: |
+          source .env
+          ALPINE=ghcr.io/grantmacken/podx-alpine:${GHPKG_ALPINE_VER}
+          XQ=ghcr.io/grantmacken/podx-xq:${GHPKG_XQ_VER}
+          OR=ghcr.io/grantmacken/podx-or:${GHPKG_OR_VER}
+          OPENRESTY=ghcr.io/grantmacken/podx-openresty:${GHPKG_OPENRESTY_VER}
+          W3M=ghcr.io/grantmacken/podx-w3m:${GHPKG_W3M_VER}
+          CURL=docker.io/curlimages/curl:latest
+          podman pull $ALPINE
+          podman pull $XQ
+          podman pull $OR
+          podman pull $OPENRESTY
+          podman pull $W3M
+          podman pull $CURL
+      - name: podman create our volumes for podx
+        run: make volumes
+      - name: podman create the podx pod
+        run: make podx
+      - name: start xq running in the podx pod
+        run: make xq-up
+      - name: compile restXQ libary modules and other xquery modules
+        run: make code
+      - name: list files in xqerl-code volume
+        run: make code-volume-list
+      - name: list compiled xquery library modules
+        run: make code-library-list
+      - name: In podx pod, check cowboy is serving on port 8081
+        run: make check-xqerl
+      # - name: insert data content for example.com into xqerl-database
+      #   run: make content
+      # - name: insert styles for example.com into static-assets volume
+      #   run: make styles
+      # - name: insert fonts for commoms into static-assets volume
+      #   run: make fonts
+      - name: add example.com to hosts file
+        run: echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
+      - name: insert self signed certs into certs volume
+        run: make certs-volume
+      - name: create self_sign.conf for nginx
+        run: make certs-conf
+      - name: insert nginx conf files into proxy-conf volume
+        run: make confs
+      - name: check nginx configuration files
+        run: make confs-check
+      - name: start running reverse-proxy in the podx pod
+        run: make or-up
+      - name: create a cacert pem that curl can use
+        run: make certs-pem
+      - name: run the checks
+        run: make checks
+          
