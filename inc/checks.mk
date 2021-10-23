@@ -11,6 +11,13 @@ Cross = printf "\033[31m✘ \033[0m %s" $1
 ##################################################################
 ## https://everything.curl.dev/usingcurl/verbose/writeout
 ##################################################################
+Crl = curl --silent --show-error \
+ --cacert src/proxy/certs/example.com.pem \
+ --connect-timeout 1 \
+ --max-time 2 \
+ --dump-header $1.headers \
+ --output $(1).html  $2
+
 WriteOut := '\
 url [ %{url} ]\n\
 response code [ %{http_code} ]\n\
@@ -30,6 +37,7 @@ appconnect: [ %{time_appconnect} ] SSL handhake \n\
 pretransfer [ %{time_pretransfer} ] before transfer \n\
 transfer    [ %{time_starttransfer} ] transfer start \n\
 tansfered   [ %{time_total} ] total transfered '
+
 GrepOK =  grep -q '$(1)' $(2) # equals $1,$2
 IsOK  = if $(call GrepOK,$1,$2) ; \
  then $(call Tick, '- [ $(basename $(notdir $2)) ] $3 ');echo;true; \
@@ -78,6 +86,12 @@ checks/code/example.com: build/code/example.com.xqm.txt
 
 checks/example.com/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@$(call Crl,$@,https://example.com:8443/home/index)
+	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
+	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
+	@$(call HasHeaderKeyShowValue,$@.headers,server)
+
+sddddd:
 	@curl --silent --show-error \
  --cacert src/proxy/certs/example.com.pem \
  --write-out $(WriteOut) \
