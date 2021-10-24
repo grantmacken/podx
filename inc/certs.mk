@@ -21,10 +21,10 @@ deploy/certs-volume.tar: src/proxy/certs/example.com.crt src/proxy/certs/dhparam
 certs-clean: 
 	@rm -fv deploy/certs-volume.tar
 	@rm -fv src/proxy/certs/* src/proxy/conf/self_signed.conf
-	@podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fRv /opt/proxy/certs/*'
-	@podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv /opt/proxy/conf/self_signed.conf'
-	@podman run --rm --workdir /opt/proxy $(ALPINE) ls certs
-	@podman run --rm --workdir /opt/proxy $(ALPINE) ls conf
+	@#podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fRv /opt/proxy/certs/*'
+	@#podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv /opt/proxy/conf/self_signed.conf'
+	@#podman run --rm --workdir /opt/proxy $(ALPINE) ls certs
+	@#podman run --rm --workdir /opt/proxy $(ALPINE) ls conf
 
 src/proxy/certs/example.com.key:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
