@@ -60,35 +60,37 @@ podx: # --publish 80:80 --publish 443:443
 .PHONY: xq-up # in podx listens on port 8081/tcp 
 xq-up: podx
 	@echo "##[ $(@) ]##"
-	@if podman inspect --format="{{.State.Running}}" xq &>/dev/null
+	@if podman inspect --format="{{.State.Running}}" xq | grep -q ERR
 	@then
-	@bin/xq eval 'application:ensure_all_started(xqerl).'
-	@else
 	@podman run --pod $(POD) \
 		 --mount $(MountCode) --mount $(MountData) \
 		 --name xq \
 		--detach $(XQ)
 	@sleep 2
-	@bin/xq eval 'application:ensure_all_started(xqerl).'
 	@fi
+	@bin/xq eval 'application:ensure_all_started(xqerl).'
 	@# after xq is up then compile code 
 	@# $(MAKE) code
 
 .PHONY: xq-down
-xq-down: code-clean
+xq-down:
 	@echo "##[ $(@) ]##"
+	@if podman inspect --format="{{.State.Running}}" or &>/dev/null
+	then
 	@podman stop xq
 	@podman rm xq
+	fi
 
 .PHONY: or-up # 
 or-up: certs confs
 	@echo "##[ $(@) ]##"
-	@podman inspect --format="{{.State.Running}}" or &>/dev/null || \
-		podman run --pod $(POD) \
+	@if podman inspect --format="{{.State.Running}}" or | grep -q ERR
+	then
+	@podman run --pod $(POD) \
 		--mount $(MountCerts) --mount $(MountProxyConf) --mount $(MountAssets) \
 		--name or \
 		--detach $(OR)
-	@$(MAKE) --silent certs-pem
+	fi
 	@podman ps -a --pod
 
 .PHONY: or-reload
@@ -145,7 +147,7 @@ service:
 	sed "19 i ExecStartPost=/bin/sleep 2" |
 	tee $(HOME)/.config/systemd/user/container-xq.service
 	@cat container-or.service | 
-	sed 's/After=pod-podx.service/After=container-or.service/g' |
+	sed 's/After=pod-podx.service/After=pod-podx.service container-xq.service/g' |
 	tee $(HOME)/.config/systemd/user/container-or.service
 	ls -al $(HOME)/.config/systemd/user
 	@systemctl --user daemon-reload
