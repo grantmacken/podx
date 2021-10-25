@@ -1,13 +1,6 @@
 ##############
 # google compute engine
 ##############
-GCE_PROJECT_ID := gmack-200121
-GCE_ZONE := australia-southeast1-b
-GCE_NAME := core@podx
-TLS_COMMON_NAME := gmack.nz
-DOMAINS := gmack.nz,markup.nz
-Gssh := gcloud compute ssh $(GCE_NAME) --zone=$(GCE_ZONE) --project $(GCE_PROJECT_ID)
-Gcmd := $(Gssh) --command
 #Gscp=gcloud compute scp --zone=$(GCE_ZONE) --project $(GCE_PROJECT_ID) $1 $(GCE_NAME):/home/core/$(notdir $1)
 
 .PHONY: gce
@@ -44,54 +37,6 @@ gce-view:
     --mount  $(MountCerts) \
 		--entrypoint '[\"/bin/sh\", \"-c\"]' $(CURL) 'ls /opt/proxy/certs'"
 
-PHONEY: gce-clean
-gce-clean: 
-	@$(Gcmd) 'podman pod stop -a' || true
-	@$(Gcmd) 'podman pod rm $(POD)' || true
-	@$(Gcmd) 'podman ps --all --pod' || true
-
-PHONEY: gce-volumes-rm
-gce-volumes-rm: 
-	@$(Gcmd) 'podman volume exists static-assets && podman volume rm static-assets' || true
-	@$(Gcmd) 'podman volume exists proxy-conf && podman volume rm proxy-conf' || true
-	@$(Gcmd) 'podman volume exists certs && podman volume rm certs' || true
-	@$(Gcmd) 'podman volume exists lualib && podman volume rm lualib' || true
-	@$(Gcmd) 'podman volume exists xqerl-database && podman volume rm xqerl-database' || true
-	@$(Gcmd) 'podman volume exists xqerl-compiled-code && podman volume rm xqerl-compiled-code' || true
-	@$(Gcmd) 'podman volume ls' || true
-
-PHONEY: gce-volumes
-gce-volumes: 
-	@$(Gcmd) 'sudo podman volume exists static-assets || podman volume create static-assets'
-	@$(Gcmd) 'sudo podman volume exists proxy-conf || podman volume create proxy-conf'
-	@$(Gcmd) 'sudo podman volume exists certs || podman volume create certs'
-	@$(Gcmd) 'sudo podman volume exists lualib || podman volume create lualib'
-	@$(Gcmd) 'sudo podman volume exists xqerl-database || podman volume create xqerl-database'
-	@$(Gcmd) 'sudo podman volume exists xqerl-compiled-code || podman volume create xqerl-compiled-code'
-	@$(Gcmd) 'sudo podman volume ls'
-
-.PHONY: gce-pull
-gce-pull: # --publish 80:80 --publish 443:443
-	@echo "##[ $(@) ]##"
-	@$(Gcmd) 'sudo podman pull $(ALPINE)'
-	@$(Gcmd) 'sudo podman pull $(OR)'
-	@$(Gcmd) 'sudo podman pull $(XQ)'
-	@$(Gcmd) 'sudo podman pull $(CURL)'
-	@$(Gcmd) 'sudo podman image list'
-
-.PHONY: gce-images-rm
-gce-images-rm:
-	@echo "##[ $(@) ]##"
-	@$(Gcmd) 'sudo podman rmi $(ALPINE)'
-	@$(Gcmd) 'sudo podman rmi $(OR)'
-	@$(Gcmd) 'sudo podman rmi $(XQ)'
-	@$(Gcmd) 'sudo podman image list'
-
-.PHONY: gce-podx
-gce-podx: # --publish 80:80 --publish 443:443
-	@echo "##[ $(@) ]##"
-	@$(Gcmd) 'sudo podman pod create -p 80:80 -p 443:443 --name $(POD)'
-	@$(Gcmd) 'sudo podman run --pod $(POD) --mount $(MountCode) --mount $(MountData) --network podman --name xq --detach $(XQ)'
 
 .PHONY: gce-xq
 gce-xq: # --publish 80:80 --publish 443:443
@@ -108,7 +53,6 @@ gce-or: # --publish 80:80 --publish 443:443
     --detach $(OR)"
 	@$(Gcmd) "sudo podman ps -a --pod"
 	@$(Gcmd) 'sudo podman top or' || true
-
 
 .PHONY: gce-or-info
 gce-or-info:

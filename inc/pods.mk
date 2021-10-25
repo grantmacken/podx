@@ -36,26 +36,58 @@ pods-pull-helpers:
 	@podman pull $(CURL)
 	@podman image list
 
+.PHONY: gce-pull
+gce-pull: # --publish 80:80 --publish 443:443
+	@echo "##[ $(@) ]##"
+	@$(Gcmd) 'sudo podman pull $(ALPINE)'
+	@$(Gcmd) 'sudo podman pull $(OR)'
+	@$(Gcmd) 'sudo podman pull $(XQ)'
+	@$(Gcmd) 'sudo podman pull $(CURL)'
+	@$(Gcmd) 'sudo podman image list'
+
 # TODO use certs for letsencrypt
 .PHONY: volumes
 volumes:
 	@podman volume exists static-assets || podman volume create static-assets
 	@podman volume exists proxy-conf || podman volume create proxy-conf
-	@#podman volume exists letsencrypt || podman volume create letsencrypt
 	@podman volume exists certs || podman volume create certs
 	@podman volume exists lualib || podman volume create lualib
 	@podman volume exists xqerl-database || podman volume create xqerl-database
 	@podman volume exists xqerl-code || podman volume create xqerl-code
 	@podman volume ls
 
+.PHONY: gce-volumes
+gce-volumes:
+	@$(Gcmd) 'sudo podman volume create static-assets' || true
+	@$(Gcmd) 'sudo podman volume create proxy-conf' || true
+	@$(Gcmd) 'sudo podman volume create certs' || true
+	@$(Gcmd) 'sudo podman volume create lualib' || true
+	@$(Gcmd) 'sudo podman volume create xqerl-database' || true
+	@$(Gcmd) 'sudo podman volume create xqerl-code' || true
+	@$(Gcmd) 'sudo podman volume ls'
+
+.PHONY: gce-volumes-clean
+gce-volumes-clean:
+	@$(Gcmd) 'sudo podman volume rm static-assets' || true
+	@$(Gcmd) 'sudo podman volume rm  proxy-conf' || true
+	@$(Gcmd) 'podman volume rm certs' || true
+	@$(Gcmd) 'podman volume rm lualib' || true
+	@$(Gcmd) 'sudo podman volume rm xqerl-database' || true
+	@$(Gcmd) 'sudo podman rm create xqerl-code' || true
+	@$(Gcmd) 'sudo podman volume prune -f '
+	@$(Gcmd) 'sudo podman volume ls '
+
 .PHONY: podx
 podx: # --publish 80:80 --publish 443:443
 	@echo "##[ $(@) ##]"
-	@# only open port 8080 and 8433  
-	@# or is reverse proxy for xq on port 8081
-	@# curl and w3m which attached to pod can communicate with xq on port 8081
-	@podman pod exists $(@) || podman pod create -p 8080:80 -p 8443:443 --name $(@)
+	@podman pod exists $(POD) || podman pod create -p 8080:80 -p 8443:443 --name $(@)
 	@podman pod list
+
+.PHONY: gce-podx
+gce-podx: # --publish 80:80 --publish 443:443
+	@echo "##[ $(@) ]##"
+	@$(Gcmd) 'sudo podman pod exists $(POD) || sudo podman pod create -p 80:80 -p 443:443 --name $(POD)'
+	@$(Gcmd) 'sudo podman pod list'
 
 .PHONY: xq-up # in podx listens on port 8081/tcp 
 xq-up: podx
@@ -70,7 +102,22 @@ xq-up: podx
 	@fi
 	@bin/xq eval 'application:ensure_all_started(xqerl).'
 	@# after xq is up then compile code 
-	@# $(MAKE) code
+
+.PHONY: gce-xq-up # in podx listens on port 8081/tcp 
+gce-xq-up:
+	@echo "##[ $(@) ]##"
+	@$(Gcmd) 'sudo podman run --pod $(POD) \
+		 --mount $(MountCode) --mount $(MountData) \
+		 --name xq \
+		--detach $(XQ)'
+	@sleep 2
+	@$(Gcmd) 'sudo podman exec xq xqerl eval "application:ensure_all_started(xqerl)."'
+	@# after xq is up then we can check if cowboy server is listening on port 8081
+	@$(Gcmd) 'sudo podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081'
+
+.PHONY: gce-etc-hosts
+gce-etc-hosts: # TODO once only
+	@$(Gcmd) 'sudo echo "127.0.0.1  example.com" | sudo tee -a /etc/hosts'
 
 .PHONY: xq-down
 xq-down:
@@ -120,6 +167,11 @@ pods-clean:
 	@rm -f pod-podx.service
 	@rm -f container-xq.service 
 	@rm -f container-or.service
+
+.PHONY: gce-pods-clean
+gce-pods-clean:
+	@podman pod stop -a || true
+	@podman pod rm $(POD) || true
 
 .PHONY: volumes-clean
 volumes-clean: pods-clean
