@@ -34,6 +34,10 @@ DASH = printf %60s | tr ' ' '-' && echo
 Gssh := gcloud compute ssh $(GCE_NAME) --zone=$(GCE_ZONE) --project $(GCE_PROJECT_ID)
 Gcmd := $(Gssh) --command
 
+MountPoint = $(if $2,\
+						 $(Gcmd) 'sudo podman volume inspect static-assets' | jq -r '.[].Mountpoint',\
+						 podman volume inspect static-assets' | jq -r '.[].Mountpoint')
+
 .PHONY: help
 help: ## show this help	
 	@cat $(MAKEFILE_LIST) | 
