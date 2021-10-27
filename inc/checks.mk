@@ -86,7 +86,8 @@ checks/code/example.com: build/code/example.com.xqm.txt
 
 checks/example.com/home/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@$(call Crl,$@,https://example.com:8443/home/index)
+	@#$(call Crl,$@,https://example.com:8443/home/index)
+	@$(call Crl,$@,https://example.com:8443/)
 	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
 	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
 	@$(call HasHeaderKeyShowValue,$@.headers,server)

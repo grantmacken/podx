@@ -8,9 +8,12 @@ certs-conf:  src/proxy/conf/self_signed.conf
 certs-pem: src/proxy/certs/example.com.pem # or must be running locally
 certs-deploy: deploy/certs.tar #  after certs and certs-pem
 
-certs-volume-check: 
-		@podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
-			'ls ../certs'
+certs-check: 
+	@podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
+		'ls ../certs'
+	@Mountpoint=$$(podman volume inspect certs | jq -r '.[].Mountpoint')
+	@ls -ldZ $$Mountpoint
+	@ls -lRZ $$Mountpoint
 
 deploy/certs.tar: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/certs/example.com.pem
 	@echo '## $(@) ##'
@@ -26,7 +29,6 @@ certs-deploy-check:
 	@$(Gcmd) 'sudo podman volume inspect certs' | jq '.'
 	@$(Gcmd) 'sudo ls -ldZ /var/lib/containers/storage/volumes/certs/_data'
 	@$(Gcmd) 'sudo ls -lRZ /var/lib/containers/storage/volumes/certs/_data'
-
 
 .PHONY: certs-clean
 certs-clean: 
@@ -86,7 +88,7 @@ src/proxy/certs/dhparam.pem:
 src/proxy/certs/example.com.pem:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir $@) ##'
-	@if podman inspect --format="{{.State.Running}}" or &>/dev/null 
+	@if podman ps -a | grep -q $(OR)
 	then
 	@openssl s_client -showcerts -connect example.com:8443 </dev/null \
 		| sed -n -e '/-.BEGIN/,/-.END/ p' > $@
