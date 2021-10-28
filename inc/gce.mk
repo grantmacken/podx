@@ -2,6 +2,22 @@
 # google compute engine
 ##############
 #Gscp=gcloud compute scp --zone=$(GCE_ZONE) --project $(GCE_PROJECT_ID) $1 $(GCE_NAME):/home/core/$(notdir $1)
+# NOTES:
+# only /var and /etc are writable 
+
+GceIPAddress := $(shell $(Gcmd) 'sudo podman inspect or' | jq -r '.[].NetworkSettings.Networks.podman.IPAddress')
+GceGateway := $(shell $(Gcmd) 'sudo podman inspect or' |   jq -r '.[].NetworkSettings.Networks.podman.Gateway')
+
+.PHONY: gce-network
+gce-network: .gce.env
+	@#grep -q GCE_IPADDRESS=$(GceIPAddress) $< || echo 'GCE_IPADDRESS=$(GceIPAddress)' >> $<
+	@#grep -q GCE_GATEWAY=$(GceGateway)     $< || echo 'GCE_GATEWAY=$(GceGateway)'     >> $<
+	@#$(Gcmd) 'cat /etc/hosts' # 10.152.0.8   example.com
+	@#$(Gcmd) 'sudo podman network ls'
+	@#$(Gcmd) 'sudo podman run --pod $(POD) --rm $(CURL) http://example.com/ --resolve example.com:80:$(GCE_IPADDRESS)'
+	@#$(Gcmd) 'sudo podman run --rm $(CURL) $(GCE_IPADDRESS):8081'
+	@#$(Gcmd) 'sudo podman run --rm $(CURL) $(GCE_IPADDRESS):8081'
+	@$(Gcmd) 'cat /etc/cni/net.d/87-podman.conflist' 
 
 .PHONY: gce
 gce:
@@ -65,9 +81,10 @@ gce-or-info:
 	@$(DASH)
 	@$(Gcmd) 'sudo podman top or' || true
 	@$(DASH)
+	@podman inspect or' | jq '.[].NetworkSettings.Networks.podman.IPAddress
 	@$(Gcmd) 'sudo podman inspect or' | jq '.[].NetworkSettings.Networks.podman.IPAddress'
 	@$(Gcmd) 'sudo podman inspect xq' | jq '.[].NetworkSettings.Networks.podman.IPAddress'
-	@$(Gcmd) 'sudo podman pod list'
+	@#$(Gcmd) 'sudo podman pod list'
 	@$(DASH)
 
 
@@ -76,7 +93,6 @@ gce-or-view:
 	@IP=$(shell $(Gcmd) 'sudo podman inspect or' | jq '.[].NetworkSettings.Networks.podman.IPAddress' )
 	@echo $$IP
 	@#$(Gcmd) 'sudo podman run --pod $(POD) --rm  $(CURL) --version'
-	@$(Gcmd) 'sudo podman run --pod $(POD) --rm  $(CURL) http://example.com --resolve example.com:80:127.0.0.1'
 
 PHONEY: gce-instance-create
 gce-instance-create: 
