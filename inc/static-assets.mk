@@ -21,25 +21,17 @@ SiteIcons := $(patsubst src/static_assets/%,/opt/proxy/html/%.svgz,$(IconsList))
 BuildScripts := $(patsubst src/%,build/%.txt,$(ScriptsList)) # TODO webpack
 SiteScripts := $(patsubst src/static_assets/%,/opt/proxy/html/%.gz,$(ScriptsList))
 
+
 FileSize = $(shell ls -lh $1 | tr -s ' ' | cut -d ' ' -f 5)
 
-.PHONY: assets
-assets: deploy/static-assets.tar
-
-.PHONY: styles
 styles: $(BuildStyles)
-
-.PHONY: fonts
 fonts: $(BuildFonts)
-
-.PHONY: icons
 icons: $(BuildIcons)
-
-.PHONY: images
 images: $(BuildImages)
-
-.PHONY: scripts
 scripts: $(BuildScripts)
+BuildAssets := $(BuildStyles) $(BuildFonts) $(BuildIcons) $(BuildImages) $(BuildScripts)
+assets:  $(BuildAssets)
+assets-deploy: deploy/static-assets.tar
 
 .PHONY: watch-assets
 watch-assets:
@@ -59,6 +51,22 @@ assets-clean:
 .PHONY: assets-list
 assets-list:
 	@podman run  --rm --mount $(MountAssets) $(ALPINE) ls -alR fonts icons images
+
+deploy/static-assets.tar:  $(BuildAssets)
+	@echo '##[  $(notdir $@) ]##'
+	@podman volume export  $(basename $(notdir $@)) > $@
+	@gcloud compute scp $@ $(GCE_NAME):/home/core/$(notdir $@)
+	@$(Gcmd) 'sudo podman volume import $(basename $(notdir $@)) /home/core/$(notdir $@)'
+	@$(Gcmd) 'sudo podman run --rm --mount $(MountAssets) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) \
+			"ls -lR /opt/proxy/html/"'
+
+.PHONY: assets-deploy-check
+assets-deploy-check:
+	@Mountpoint=$$($(call MountPoint,static-assets,gce))
+	@echo "$$Mountpoint"
+	@$(Gcmd) 'sudo podman volume inspect static-assets' | jq '.'
+	@$(Gcmd) "sudo ls -ldZ $$Mountpoint"
+	@$(Gcmd) "sudo ls -lRZ $$Mountpoint"
 
 ################
 ### STYLES ###
@@ -238,9 +246,3 @@ scripts-clean:
 	@rm -v $(BuildScripts) || true
 	@podman run --rm --mount $(MountAssets) --entrypoint '["sh", "-c"]'  $(ALPINE) \
 		'rm -v $(SiteScripts)' || true
-
-deploy/static-assets.tar: styles fonts icons images scripts
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo ' - tar the "static-assets" volume into deploy directory'
-	@podman run --interactive --rm --mount $(MountAssets)  \
-		--entrypoint "tar" $(ALPINE) -czf - /opt/proxy/html 2>/dev/null > $@

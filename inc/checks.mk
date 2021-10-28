@@ -11,13 +11,6 @@ Cross = printf "\033[31m✘ \033[0m %s" $1
 ##################################################################
 ## https://everything.curl.dev/usingcurl/verbose/writeout
 ##################################################################
-Crl = curl --silent --show-error \
- --cacert src/proxy/certs/example.com.pem \
- --connect-timeout 1 \
- --max-time 2 \
- --dump-header $1.headers \
- --output $(1).html  $2
-
 WriteOut := '\
 url [ %{url} ]\n\
 response code [ %{http_code} ]\n\
@@ -37,6 +30,14 @@ appconnect: [ %{time_appconnect} ] SSL handhake \n\
 pretransfer [ %{time_pretransfer} ] before transfer \n\
 transfer    [ %{time_starttransfer} ] transfer start \n\
 tansfered   [ %{time_total} ] total transfered '
+
+Crl = curl --silent --show-error \
+ --cacert src/proxy/certs/example.com.pem \
+ --connect-timeout 1 \
+ --max-time 2 \
+ --write-out $(WriteOut) \
+ --dump-header $1.headers \
+ --output $(1).html $2
 
 GrepOK =  grep -q '$(1)' $(2) # equals $1,$2
 IsOK  = if $(call GrepOK,$1,$2) ; \
@@ -72,47 +73,34 @@ checks-clean:
 .PHONY: checks
 checks: check-homepage
 check-homepage: checks/example.com/home/index
+check-remote: checks/remote/example.com/home/index
 check-xqerl: checks/code/example.com
 
 checks/code/example.com: build/code/example.com.xqm.txt
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081 | tee $@
 	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081 | tee -a $@
-	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081/example.com/content/home/index | tee -a $@
 	@grep -q 'server: Cowboy' $@
 	@grep -q 'news from erewhon' $@
-	@grep -q 'example page' $@
 	@$(DASH)
 
-checks/example.com/home/index:
+checks/example.com/home/index: build/code/example.com.xqm.txt
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@$(call Crl,$@,https://example.com:8443/home/index)
+	@#$(call Crl,$@,https://example.com:8443/home/index)
+	@$(call Crl,$@,https://example.com:8443/) > $@
 	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
 	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
 	@$(call HasHeaderKeyShowValue,$@.headers,server)
 
-sddddd:
-	@curl --silent --show-error \
- --cacert src/proxy/certs/example.com.pem \
- --write-out $(WriteOut) \
- --connect-timeout 1 \
- --max-time 2 \
- --dump-header $(dir $@)/$(notdir $@).headers \
- --output $(dir $@)/$(notdir $@).html \
- https://$(DOMAIN):8443/home/index > $@
-	@#$(DASH)
-	@#cat $@
-	@#echo && $(DASH)
-	@#cat $@.html
-	@#echo && $(DASH)
-	@#cat $@.headers
-	@$(DASH)
-	@grep url $@
-	@$(DASH)
-	@$(call ServesHeader,$@.headers,HTTP/2 200, - status OK!)
-	@$(call HasHeaderKeyShowValue,$@.headers,content-type) 
-	@$(call HasHeaderKeyShowValue,$@.headers,server)
-	@$(DASH)
+checks/remote/example.com/home/index: build/code/example.com.xqm.txt
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@$(Gcmd) 'sudo podman run --rm --pod $(POD) --mount $(MountCerts) $(CURL) \
+		--cacert /opt/proxy/certs/example.com.pem \
+		--verbose \
+		--show-error \
+	  --connect-timeout 1 \
+	  --max-time 2 \
+		https://example.com:'
 
 checks/$(DOMAIN)/styles/index:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)

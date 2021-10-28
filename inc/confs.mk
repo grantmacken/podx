@@ -5,14 +5,13 @@
 #
 ConfList   := $(filter-out src/proxy/conf/reverse_proxy.conf , $(wildcard src/proxy/conf/*.conf)) src/proxy/conf/reverse_proxy.conf
 BuildConfs := build/proxy/conf/mime.types $(patsubst src/%.conf,build/%.conf,$(ConfList))
-CheckConfs := $(patsubst src/%.conf,check/%.conf,$(filter-out src/proxy/conf/self_signed.conf, $(ConfList)))
+CheckConfs := $(patsubst src/%.conf,checks/%.conf,$(filter-out src/proxy/conf/self_signed.conf, $(ConfList)))
 SiteConfs := $(patsubst src/%.conf,/opt/%.conf,$(ConfList))
 
-.PHONY: confs
+.PHONY: confs confs-check confs-deploy
 confs: $(BuildConfs)
-
-.PHONY: confs-check
 confs-check: $(CheckConfs)
+confs-deploy: deploy/proxy-conf.tar #  after confs-check
 
 .PHONY: watch-confs
 watch-confs:
@@ -20,6 +19,28 @@ watch-confs:
         clear && $(MAKE) --silent confs; \
         inotifywait -qre close_write . || true; \
     done
+
+deploy/proxy-conf.tar: $(CheckConfs) build/proxy/conf/mime.types
+	@echo '##[  $(notdir $@) ]##'
+	@podman volume export  $(basename $(notdir $@)) > $@
+	@gcloud compute scp $@ $(GCE_NAME):/home/core/$(notdir $@)
+	@#$(Gcmd) 'sudo podman run --rm --mount $(MountProxyConf) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) "rm -fv /opt/proxy/conf/*"'
+	@$(Gcmd) 'sudo podman volume import $(basename $(notdir $@)) /home/core/$(notdir $@)'
+	@#$(Gcmd) 'sudo podman run --rm --mount $(MountProxyConf) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) "sed -i 's/localhost/$(GCE_NETWORK)/' /opt/proxy/conf/reverse_proxy.conf"'	
+	@$(Gcmd) 'sudo podman run --rm --mount $(MountProxyConf) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) \
+			"cat /opt/proxy/conf/reverse_proxy.conf"'
+	@$(Gcmd) 'sudo podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t'
+	@$(Gcmd) 'sudo podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -s reload'
+	@$(Gcmd) 'sudo podman ps -a --pod'
+	@$(Gcmd) 'rm -v $(notdir $@)'
+	@rm -v deploy/proxy-conf.tar
+
+.PHONY: confs-deploy-check
+confs-deploy-check:
+	@#$(Gcmd) 'ps -eZ | grep container_t'
+	@$(Gcmd) 'sudo podman volume inspect proxy-conf' | jq '.'
+	@$(Gcmd) 'sudo ls -ldZ /var/lib/containers/storage/volumes/proxy-conf/_data'
+	@$(Gcmd) 'sudo ls -lRZ /var/lib/containers/storage/volumes/proxy-conf/_data'
 
 .phony: confs-clean
 confs-clean:
@@ -46,7 +67,7 @@ build/proxy/conf/%.conf: src/proxy/conf/%.conf
 	@echo '##[ $@ ]##'
 	@cat $< | podman run --interactive --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) \
 		 'cat - > /opt/proxy/conf/$(notdir $<) && ls /opt/proxy/conf/$(notdir $<)' > $@
-	@if podman inspect --format="{{.State.Running}}" or &>/dev/null
+	@if podman ps -a | grep -q $(OR)
 	then
 	  if podman exec or ls /opt/proxy/conf/reverse_proxy.conf &>/dev/null
 	  then
@@ -55,8 +76,7 @@ build/proxy/conf/%.conf: src/proxy/conf/%.conf
 		fi
 	fi
 
-
-check/proxy/conf/%.conf: build/proxy/conf/%.conf
+checks/proxy/conf/%.conf: build/proxy/conf/%.conf
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '##[ $@ ]##'
 	@podman run --interactive --rm  \
@@ -67,13 +87,7 @@ check/proxy/conf/%.conf: build/proxy/conf/%.conf
 
 build/proxy/conf/mime.types: src/proxy/conf/mime.types
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '##[  $@ ]##'
+	@echo '##[ $(notdir $@) ]##'
 	@cat $< | podman run  --interactive --rm  --mount $(MountProxyConf)  --entrypoint '["sh", "-c"]' $(ALPINE) \
 		 'cat - > /opt/proxy/conf/$(notdir $<) && ls -l /opt/proxy/conf/$(notdir $<)' > $@
-
-deploy/proxy-conf.tar: build/proxy/conf/mime.types $(BuildConfs)
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@#echo ' - tar the "nginx-confguration" volume into deploy directory'
-	@podman run  --interactive --rm  --mount $(MountProxyConf)  \
-	 --entrypoint "tar" $(OPENRESTY) -czf - /opt/proxy/conf 2>/dev/null > $@
 

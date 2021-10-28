@@ -8,3 +8,5 @@ The pod is named podx hence the name of this repo.
 In the podx pod we run 2 containers to serve our web sites.
  1. A nginx server setup as a reverse proxy and cache server. 
  2. A xqerl container which is only reachable on port 8081
+
+

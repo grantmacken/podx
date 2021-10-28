@@ -5,26 +5,39 @@
 certs: certs-volume certs-conf
 certs-volume: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem
 certs-conf:  src/proxy/conf/self_signed.conf
-certs-pem: src/proxy/certs/example.com.pem # or must be running
+certs-pem: src/proxy/certs/example.com.pem # or must be running locally
+certs-deploy: deploy/certs.tar #  after certs and certs-pem
 
-certs-volume-check: 
-		@podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
-			'ls ../certs'
+certs-check: 
+	@podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) \
+		'ls ../certs'
+	@Mountpoint=$$(podman volume inspect certs | jq -r '.[].Mountpoint')
+	@ls -ldZ $$Mountpoint
+	@ls -lRZ $$Mountpoint
 
-deploy/certs-volume.tar: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '## $(notdir $@) ##'
-		@podman run --rm  --interactive  --mount $(MountCerts) --entrypoint '["sh", "-c"]'  $(ALPINE) \
-			'tar -czf - /opt/proxy/certs' 2>/dev/null > $@
+deploy/certs.tar: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/certs/example.com.pem
+	@echo '## $(@) ##'
+	@podman volume export certs > $@
+	@gcloud compute scp $@ $(GCE_NAME):/home/core/$(notdir $@)
+	@$(Gcmd) 'sudo podman volume import certs /home/core/$(notdir $@)'
+	@$(Gcmd) 'sudo podman run --rm --mount $(MountCerts) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) \
+			"ls ../certs"'
+
+.PHONY: certs-deploy-check
+certs-deploy-check:
+	@#$(Gcmd) 'ps -eZ | grep container_t'
+	@$(Gcmd) 'sudo podman volume inspect certs' | jq '.'
+	@$(Gcmd) 'sudo ls -ldZ /var/lib/containers/storage/volumes/certs/_data'
+	@$(Gcmd) 'sudo ls -lRZ /var/lib/containers/storage/volumes/certs/_data'
 
 .PHONY: certs-clean
 certs-clean: 
 	@rm -fv deploy/certs-volume.tar
 	@rm -fv src/proxy/certs/* src/proxy/conf/self_signed.conf
-	@podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fRv /opt/proxy/certs/*'
-	@podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv /opt/proxy/conf/self_signed.conf'
-	@podman run --rm --workdir /opt/proxy $(ALPINE) ls certs
-	@podman run --rm --workdir /opt/proxy $(ALPINE) ls conf
+	@#podman run --rm  --mount $(MountCerts) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fRv /opt/proxy/certs/*'
+	@#podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv /opt/proxy/conf/self_signed.conf'
+	@#podman run --rm --workdir /opt/proxy $(ALPINE) ls certs
+	@#podman run --rm --workdir /opt/proxy $(ALPINE) ls conf
 
 src/proxy/certs/example.com.key:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
@@ -75,7 +88,7 @@ src/proxy/certs/dhparam.pem:
 src/proxy/certs/example.com.pem:
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir $@) ##'
-	@if podman inspect --format="{{.State.Running}}" or &>/dev/null 
+	@if podman ps -a | grep -q $(OR)
 	then
 	@openssl s_client -showcerts -connect example.com:8443 </dev/null \
 		| sed -n -e '/-.BEGIN/,/-.END/ p' > $@

@@ -4,6 +4,7 @@ SHELL := /bin/bash
 .DELETE_ON_ERROR:
 # invoke with alias mk 
 include .env
+include .gce.env
 # images
 #ALPINE    := ghcr.io/grantmacken/podx-alpine:$(GHPKG_ALPINE_VER)
 CMARK     := ghcr.io/grantmacken/podx-cmark:$(GHPKG_CMARK_VER)
@@ -30,6 +31,12 @@ MountCode        := type=volume,target=/usr/local/xqerl/code,source=xqerl-code
 MountData        := type=volume,target=/usr/local/xqerl/data,source=xqerl-database
 #MountEscripts   := type=volume,target=$(XQERL_HOME)/bin/scripts,source=xqerl-escripts
 DASH = printf %60s | tr ' ' '-' && echo
+Gssh := gcloud compute ssh $(GCE_NAME) --zone=$(GCE_ZONE) --project $(GCE_PROJECT_ID)
+Gcmd := $(Gssh) --command
+
+MountPoint = $(if $2,\
+						 $(Gcmd) 'sudo podman volume inspect static-assets' | jq -r '.[].Mountpoint',\
+						 podman volume inspect static-assets' | jq -r '.[].Mountpoint')
 
 .PHONY: help
 help: ## show this help	

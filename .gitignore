@@ -4,9 +4,6 @@ checks
 site
 .tmp
 .git
-src/proxy/certs/
-src/proxy/conf/self-signed.conf
-src/proxy/conf/self_signed.conf
 src/proxy/conf/tmp/
 container-or.service
 container-xq.service
