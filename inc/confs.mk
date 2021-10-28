@@ -26,8 +26,14 @@ deploy/proxy-conf.tar: $(CheckConfs) build/proxy/conf/mime.types
 	@gcloud compute scp $@ $(GCE_NAME):/home/core/$(notdir $@)
 	@#$(Gcmd) 'sudo podman run --rm --mount $(MountProxyConf) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) "rm -fv /opt/proxy/conf/*"'
 	@$(Gcmd) 'sudo podman volume import $(basename $(notdir $@)) /home/core/$(notdir $@)'
+	@#$(Gcmd) 'sudo podman run --rm --mount $(MountProxyConf) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) "sed -i 's/localhost/$(GCE_NETWORK)/' /opt/proxy/conf/reverse_proxy.conf"'	
 	@$(Gcmd) 'sudo podman run --rm --mount $(MountProxyConf) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) \
-			"ls -l /opt/proxy/conf/"'
+			"cat /opt/proxy/conf/reverse_proxy.conf"'
+	@$(Gcmd) 'sudo podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t'
+	@$(Gcmd) 'sudo podman exec or openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -s reload'
+	@$(Gcmd) 'sudo podman ps -a --pod'
+	@$(Gcmd) 'rm -v $(notdir $@)'
+	@rm -v deploy/proxy-conf.tar
 
 .PHONY: confs-deploy-check
 confs-deploy-check:
