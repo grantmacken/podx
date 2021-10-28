@@ -148,11 +148,14 @@ gce-etc-hosts: # TODO once only
 .PHONY: gce-or-up-check 
 gce-or-up-check:
 	@# W3M running in the pod
-	@#$(Gcmd) 'sudo podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:80'
-	@#$(Gcmd) 'sudo podman run --rm --pod $(POD) $(W3M) -dump http://localhost:80'
+	@$(Gcmd) 'sudo podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:80' || true
+	@$(Gcmd) 'sudo podman run --rm --pod $(POD) $(W3M) -dump http://localhost:80' || true
 	@# W3M running on the gce host
-	@# $(Gcmd) 'sudo podman run --rm  $(W3M) -dump http://10.152.0.8:80'
-	@#$(Gcmd) 'sudo podman run --rm  $(W3M) -dump http://example.com'
+	@$(Gcmd) 'sudo podman run --rm  $(W3M) -dump http://10.152.0.8:80' || true
+	@$(Gcmd) 'sudo podman run --rm  $(W3M) -dump http://example.com' || true
+
+.PHONY: gce-or-up-check-ssl 
+gce-or-up-check-ssl:
 	@# CURL running in the gce host
 	@$(Gcmd) 'sudo podman run --rm  --mount $(MountCerts) $(CURL) \
 		--cacert /opt/proxy/certs/example.com.pem \
@@ -294,4 +297,3 @@ gce-pods-status:
 	@#$(Gcmd) 'sudo journalctl -xeu pod-podx.service' 
 	@#$(Gcmd) 'sudo journalctl -xeu container-xq.service' 
 	@#$(Gcmd) 'sudo podman pod list'
-	@#$(Gcmd) 'firewall-cmd --list-services'
