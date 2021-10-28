@@ -9,7 +9,6 @@ BuildLibCode := $(patsubst src/%.xqm,build/%.xqm.txt,$(CodeLibraryModules))
 CodeMainModules  :=  $(wildcard src/code/*.xq)
 BuildMainCode := $(patsubst src/%.xq,build/%.xq.txt,$(CodeMainModules))
 
-
 PHONY: code # compile all xQuery library modules files in src/code
 code: $(BuildLibCode) $(BuildMainCode)
 code-deploy: deploy/xqerl-code.tar #  after xq-up and code
@@ -22,11 +21,6 @@ watch-code:
         inotifywait -qre close_write ./src/code || true; \
     done
 
-# PHONY: code-view
-# code-view:
-#@w3m -dump -o ssl_verify_server=false https://example.com:8443
-#@$(DASH)
-
 .PHONY: watch-code-view
 watch-code-view:
 	@while true; do \
@@ -34,7 +28,7 @@ watch-code-view:
         inotifywait -qre close_write ./build/code || true; \
     done
 
-deploy/xqerl-code.tar:
+deploy/xqerl-code.tar: $(BuildLibCode) $(BuildMainCode)
 	@echo '## $(@) ##'
 	@podman volume export  $(basename $(notdir $@)) > $@
 	@gcloud compute scp $@ $(GCE_NAME):/home/core/$(notdir $@)
@@ -79,7 +73,6 @@ deploy/code/%.xqm.txt: build/code/%.xqm.txt
 	then
 	@$(Gcmd) 'sudo podman exec xq xqerl eval "xqerl:compile(\"code/src/$(basename $(notdir $<))\")."' > $@
 	fi
-
 
 build/code/%.xq.txt: src/code/%.xq
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
