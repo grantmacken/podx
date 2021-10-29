@@ -41,8 +41,8 @@ content-clean:
 	@rm -v $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap) || true
 	@#TODO content items belong to a db URI collection  e.g. http://example.com/content
 	@# delete the db URI and all the content data is removed
-	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
-	@bin/xq delete collection $${domain}/content
+	@#read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
+	@#bin/xq delete collection $${domain}/content
 
 .PHONY: content-list
 content-list:
