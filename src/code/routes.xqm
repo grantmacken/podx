@@ -1,6 +1,113 @@
-xquery version "3.1";
-module namespace _ = "http://xq/#cmarkup";
+module namespace _ = 'http://example.com/#routes';
+declare namespace rest = "http://exquery.org/ns/restxq";
+declare namespace http = "http://expath.org/ns/http-client";
+declare namespace output = "http://www.w3.org/2010/xslt-xquery-serialization";
+declare namespace err = "http://www.w3.org/2005/xqt-errors";
 declare namespace cm ="http://commonmark.org/xml/1.0";
+declare variable $_:container := 'xq';
+(: cmark docs found in the domains content dir :)
+
+declare
+  %rest:path("/")
+  %rest:GET
+  %rest:produces("text/html")
+  %output:method("html")
+function _:erewhon(){(
+  <rest:response>
+    <http:response status="200" message="OK">
+      <http:header name="Content-Type" value="text/html"/>
+    </http:response>
+  </rest:response>,
+element html {
+    attribute lang {'en'},
+    element head {
+      element title { 'nowhere' }
+      },
+    element body {
+        element h1 { 'news from erewhon' }
+        }
+     }
+ )};
+
+declare
+  %rest:path("/{$sDomain}/content/{$sCollection}/{$sItem}")
+  %rest:GET
+  %rest:produces("text/html")
+  %output:method("html")
+function _:main($sDomain, $sCollection, $sItem){
+let $dbURI  :=  'http:/' || request:path()
+let $pubBase := string-join(('https:','',$sDomain),'/')
+let $dbCollection := $dbURI => substring-before( '/' || $sItem)
+let $dbItemList := try{$dbCollection => uri-collection()} catch * {()}  
+let $dbCmark    := $dbURI || '.cmark'
+let $hasCmark  := $dbCmark = ($dbItemList)
+let $docCmark := 
+  if ( $hasCmark )
+  then try{ $dbCmark => db:get()} catch * {()}
+  else ()
+
+let $dbTemplate := $dbCollection || '/default.tpl'
+let $hasTemplate  := $dbTemplate = ($dbItemList)
+let $tplFunction := 
+  if ( $hasTemplate )
+  then try{ $dbTemplate => db:get()} catch * {()}
+  else ()
+let $resMap := map { 
+  "domain": $sDomain,
+  "collection": $sCollection,
+  "item": $sItem
+  }
+return 
+  if ( not( $docCmark instance of document-node() ) )
+  then  _:resNoItem($sDomain, $sCollection, $sItem)
+  else 
+    if ( not($tplFunction instance of function(*)) )
+    then _:resNoItem($sDomain, $sCollection, $sItem)
+    else 
+     let $fmMap :=  try{$docCmark => _:frontmatter()} catch * { map{} }
+     let $contentMap :=  try{ map { 'content': $docCmark => _:dispatch()}} catch * { map{} }
+     let $res := map:merge(( $fmMap, $resMap, $contentMap)) => $tplFunction()
+     return 
+      if ( $res instance of element() )
+      then _:resOK($res)
+      else _:resNoItem($sDomain, $sCollection, $sItem )
+};
+
+declare function _:resNoItem($sDomain, $sCollection, $sItem){
+(
+<rest:response>
+  <http:response status="200" message="OK">
+    <http:header name="Content-Type" value="text/html"/>
+  </http:response>
+</rest:response>,
+element html {
+    attribute lang {'en'},
+    element head {
+      element title { 'route' }
+      },
+    element body {
+        element h1 { 'No ITEM page' },
+        element p { 'uri: ' || request:uri()},
+        element p { 'domain: ' || $sDomain },
+        element p { 'collection: ' || $sCollection },
+        element p { 'item: ' || $sItem },
+        element p { '--ERROR --' }
+        }
+     }
+ )
+};
+
+
+declare function _:resOK( $res ){
+(
+  <rest:response>
+    <http:response status="200" message="OK">
+      <http:header name="Content-Type" value="text/html"/>
+    </http:response>
+  </rest:response>,
+  $res
+ )
+};
 
 declare
 function _:frontmatter( $body as document-node() ) as map(*) {

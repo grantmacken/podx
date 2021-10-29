@@ -3,9 +3,8 @@
 # xquery main modules put into *xqerl-compiled-code* volume
 # files are xQuery *library modules* except
 ###########################
-CodeLibraryModules  :=  $(filter-out src/code/example.com.xqm ,$(wildcard src/code/*.xqm))  src/code/example.com.xqm
+CodeLibraryModules  :=  $(filter-out src/code/routes.xqm ,$(wildcard src/code/*.xqm))  src/code/routes.xqm
 BuildLibCode := $(patsubst src/%.xqm,build/%.xqm.txt,$(CodeLibraryModules))
-
 CodeMainModules  :=  $(wildcard src/code/*.xq)
 BuildMainCode := $(patsubst src/%.xq,build/%.xq.txt,$(CodeMainModules))
 
@@ -41,7 +40,10 @@ code-clean:
 	@echo '## $(@) ##'
 	@rm -v $(BuildLibCode)  $(BuildMainCode) || true
 	@rm -v deploy/xqerl-code.tar || true
-	@#podman run --interactive --rm  --mount $(MountCode) --entrypoint "sh" $(XQ) -c 'echo -n "container xq: " && rm -v ./code/src/*' || true
+	@podman run --rm  --mount $(MountCode) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) \
+		'ls -lR /usr/local/xqerl/code' || true
+	@podman run --rm  --mount $(MountCode) --entrypoint "[\"sh\",\"-c\"]" $(ALPINE) \
+		'rm -v /usr/local/xqerl/code/src/*' || true
 
 .PHONY: code-volume-list
 code-volume-list:
@@ -54,16 +56,17 @@ code-library-list:
 	@echo '## $(@) ##'
 	@if podman ps -a | grep -q $(XQ)
 	then
-	@podman exec xq xqerl eval '[binary_to_list(X) || X <- xqerl_code_server:library_namespaces()].' | jq '.'
+	podman exec xq xqerl eval '[binary_to_list(X) || X <- xqerl_code_server:library_namespaces()].' | jq '.'
 	fi
 
 build/code/%.xqm.txt: src/code/%.xqm
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '##[ $(notdir $<) ]##'
-	@if podman ps -a | grep -q $(OR)
+	@if podman ps -a | grep -q $(XQ)
 	then
 	@bin/xq compile $< | tee $@
 	@grep -q ':I:' $@ &>/dev/null
+	@echo
 	fi
 
 deploy/code/%.xqm.txt: build/code/%.xqm.txt
@@ -77,8 +80,9 @@ deploy/code/%.xqm.txt: build/code/%.xqm.txt
 build/code/%.xq.txt: src/code/%.xq
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo '## $(notdir $<) ##'
-	@if podman ps -a | grep -q $(OR)
+	@if podman ps -a | grep -q $(XQ)
 	then
 	@bin/xq compile $< | tee $@
 	@grep -q ':I:' $@ &>/dev/null
+	@echo
 	fi

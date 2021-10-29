@@ -9,11 +9,11 @@ BuildMarkdown := $(patsubst src/%.md,build/%.cmark.txt,$(MarkdownList))
 BuildTemplate := $(patsubst src/%.xq,build/%.tpl.txt,$(TemplateList))
 BuildDataMap  := $(patsubst src/%.json,build/%.map.txt,$(DataMapList))
 # build/html/%.html: build/data/%.cmark.txt
-PHONY: content
-content: deploy/xqerl-database.tar
-
-PHONY: content-tar
-content-tar: 
+PHONY: content content-markdown content-template content-data
+content: content-markdown content-template
+content-markdown: $(BuildMarkdown) 
+content-template: $(BuildTemplate) 
+content-data: $(BuildDataMap) 
 
 .PHONY: watch-content
 watch-content:
@@ -86,7 +86,5 @@ build/data/%.tpl.txt: src/data/%.xq
 	@bin/xq put $< | tee $@
 	@grep -q 'XDM item: function' $@
 
-deploy/xqerl-database.tar: $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap)
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@podman run  --interactive --rm  --mount $(MountData)  \
-	 --entrypoint "tar" $(ALPINE) -czf - /usr/local/xqerl/data 2>/dev/null > $@
+
+

@@ -76,15 +76,16 @@ check-homepage: checks/example.com/home/index
 check-remote: checks/remote/example.com/home/index
 check-xqerl: checks/code/example.com
 
-checks/code/example.com: build/code/example.com.xqm.txt
+checks/code/example.com: build/code/routes.xqm.txt
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@podman run --rm --pod $(POD) $(W3M) -dump_head http://localhost:8081 | tee $@
 	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081 | tee -a $@
 	@grep -q 'server: Cowboy' $@
 	@grep -q 'news from erewhon' $@
+	@podman run --rm --pod $(POD) $(W3M) -dump http://localhost:8081/example.com/content/home/index | tee -a $@
 	@$(DASH)
 
-checks/example.com/home/index: build/code/example.com.xqm.txt
+checks/example.com/home/index: build/code/routes.xqm.txt
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@#$(call Crl,$@,https://example.com:8443/home/index)
 	@$(call Crl,$@,https://example.com:8443/) > $@

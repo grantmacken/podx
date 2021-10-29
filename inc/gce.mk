@@ -5,8 +5,8 @@
 # NOTES:
 # only /var and /etc are writable 
 
-GceIPAddress := $(shell $(Gcmd) 'sudo podman inspect or' | jq -r '.[].NetworkSettings.Networks.podman.IPAddress')
-GceGateway := $(shell $(Gcmd) 'sudo podman inspect or' |   jq -r '.[].NetworkSettings.Networks.podman.Gateway')
+#GceIPAddress := $(shell $(Gcmd) 'sudo podman inspect or' | jq -r '.[].NetworkSettings.Networks.podman.IPAddress')
+#GceGateway := $(shell $(Gcmd) 'sudo podman inspect or' |   jq -r '.[].NetworkSettings.Networks.podman.Gateway')
 
 .PHONY: gce-network
 gce-network: .gce.env
