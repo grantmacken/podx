@@ -45,9 +45,10 @@ confs-deploy-check:
 .phony: confs-clean
 confs-clean:
 	@echo '## $(@) ##'
-	@rm -fv $(BuildConfs)
-	@#rm -fv deploy/proxy-conf.tar
+	@rm -fv $(BuildConfs) deploy/proxy-conf.tar
+	@rm -fv deploy/proxy-conf.tar
 	@#podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'rm -fv $(SiteConfs)' || true
+	@#podman run --rm  --mount $(MountProxyConf) --entrypoint '["sh", "-c"]' $(ALPINE) 'ls /opt/proxy/confs ' || true
 
 .PHONY: confs-list
 confs-list:

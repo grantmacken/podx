@@ -225,8 +225,8 @@ service:
 	@cat pod-podx.service | 
 	tee $(HOME)/.config/systemd/user/pod-podx.service
 	@cat container-xq.service | 
-	sed "19 i ExecStartPost=/bin/sleep 2" |  
-	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval 'xqerl:compile(\"code/src/example.com.xqm\").'" |
+	sed "19 i ExecStartPost=/bin/sleep 1" |  
+	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval 'xqerl:compile(\"code/src/routes.xqm\").'" |
 	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval 'application:ensure_all_started(xqerl).'" |
 	sed "19 i ExecStartPost=/bin/sleep 2" |
 	tee $(HOME)/.config/systemd/user/container-xq.service
@@ -240,6 +240,28 @@ service:
 	@systemctl --user is-enabled pod-podx.service &>/dev/null || systemctl --user enable pod-podx.service 
 	@#reboot
 
+.PHONY: service-start
+service-start: 
+	@systemctl --user start container-xq.service
+	@podman pod list
+	@podman ps -a --pod
+	@systemctl status --user -l --no-pager container-xq.service
+	@podman top xq
+
+.PHONY: service-stop
+service-stop:
+	@systemctl --user stop container-xq.service
+	@podman pod list
+	@podman ps -a --pod
+
+.PHONY: service-status
+service-status:
+	@systemctl list-units --user  --type=service --state=active,running' | awk '/container.*\.service/ {print $1}
+	@podman pod list
+	@podman ps -a --pod
+	@systemctl status --user -l --no-pager container-xq.service
+
+
 .PHONY: gce-service
 gce-service: 
 	@$(Gcmd) 'sudo podman generate systemd --files --name $(POD)' 
@@ -249,13 +271,22 @@ gce-service:
 	sudo tee /etc/systemd/system/container-or.service'
 	@$(Gcmd) 'cat container-xq.service | 
 	sed "19 i ExecStartPost=/bin/sleep 2" |  
-	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval \"xqerl:compile(\x27code/src/example.com.xqm\x27).\"" |
+	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval \"xqerl:compile(\x27code/src/routes.xqm\x27).\"" |
 	sed "19 i ExecStartPost=/usr/bin/podman exec xq xqerl eval \"application:ensure_all_started(xqerl).\"" |
 	sed "19 i ExecStartPost=/bin/sleep 2" | sudo tee /etc/systemd/system/container-xq.service'
 	@$(Gcmd) 'sudo systemctl daemon-reload'
 	@$(Gcmd) 'sudo systemctl enable container-xq.service' || true
 	@$(Gcmd) 'sudo systemctl enable container-or.service' || true
 	@$(Gcmd) 'sudo systemctl enable pod-podx.service' || true
+
+.PHONY: pods-stop
+pods-stop:
+	@podman pod list
+	@podman ps -a --pod
+	@podman pod stop -a || true
+	@# podman pod rm $(POD) || true
+	@podman pod list
+	@podman ps -a --pod
 
 .PHONY: gce-pods-stop
 gce-pods-stop:

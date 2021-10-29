@@ -9,11 +9,11 @@ BuildMarkdown := $(patsubst src/%.md,build/%.cmark.txt,$(MarkdownList))
 BuildTemplate := $(patsubst src/%.xq,build/%.tpl.txt,$(TemplateList))
 BuildDataMap  := $(patsubst src/%.json,build/%.map.txt,$(DataMapList))
 # build/html/%.html: build/data/%.cmark.txt
-PHONY: content
-content: deploy/xqerl-database.tar
-
-PHONY: content-tar
-content-tar: 
+PHONY: content content-markdown content-template content-data
+content: content-markdown content-template
+content-markdown: $(BuildMarkdown) 
+content-template: $(BuildTemplate) 
+content-data: $(BuildDataMap) 
 
 .PHONY: watch-content
 watch-content:
@@ -41,13 +41,13 @@ content-clean:
 	@rm -v $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap) || true
 	@#TODO content items belong to a db URI collection  e.g. http://example.com/content
 	@# delete the db URI and all the content data is removed
-	@read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
-	@bin/xq delete collection $${domain}/content
+	@#read -p 'enter site domain name: (domain) ' -e -i 'example.com' domain
+	@#bin/xq delete collection $${domain}/content
 
 .PHONY: content-list
 content-list:
 	@echo '## $(@) ##'
-	@xq list $(DOMAIN)/content
+	@bin/xq list example.com/content
 
 build/data/%.cmark.txt: src/data/%.md
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
@@ -86,7 +86,5 @@ build/data/%.tpl.txt: src/data/%.xq
 	@bin/xq put $< | tee $@
 	@grep -q 'XDM item: function' $@
 
-deploy/xqerl-database.tar: $(BuildMarkdown) $(BuildTemplate) $(BuildDataMap)
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@podman run  --interactive --rm  --mount $(MountData)  \
-	 --entrypoint "tar" $(ALPINE) -czf - /usr/local/xqerl/data 2>/dev/null > $@
+
+
