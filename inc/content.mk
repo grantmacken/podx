@@ -47,7 +47,7 @@ content-clean:
 .PHONY: content-list
 content-list:
 	@echo '## $(@) ##'
-	@xq list $(DOMAIN)/content
+	@bin/xq list example.com/content
 
 build/data/%.cmark.txt: src/data/%.md
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
