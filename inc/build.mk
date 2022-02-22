@@ -6,7 +6,10 @@ Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-images
-build-images: alpine-base-images node-alpine-images build-openresty build-or build-xq ## buildah build all images
+build-images: build-xq ## buildah build all images
+
+.PHONY: xbuild-images
+xbuild-images: alpine-base-images node-alpine-images build-openresty build-or build-xq ## buildah build all images
 
 .PHONY: alpine-base-images
 alpine-base-images: build-alpine build-curl build-w3m build-cmark build-zopfli build-magick 
