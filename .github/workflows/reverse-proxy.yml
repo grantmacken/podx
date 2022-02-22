@@ -1,4 +1,4 @@
-name: podx builds
+name: podx reverse proxy
 on:
   push:
     branches: reverse-proxy*

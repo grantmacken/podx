@@ -1,4 +1,4 @@
-name: podx checks
+name: podx main
 on:
   push:
     branches: main

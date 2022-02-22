@@ -1,4 +1,4 @@
-name: podx builds
+name: podx pods
 on:
   push:
     branches: pods*
