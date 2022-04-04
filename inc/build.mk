@@ -134,7 +134,6 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CMARK_VER)
 endif
 
-
 .PHONY: build-zopfli
 build-zopfli: ## buildah build zopfli
 	@CONTAINER=$$(buildah from localhost/alpine)
@@ -265,11 +264,10 @@ build-openresty: ## buildah build: openresty as base build for podx
 	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk )
 	@buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
-	  /opt/proxy/html \
+		/opt/proxy/html \
 		/opt/proxy/logs \
 		/opt/proxy/conf \
-		/opt/proxy/certs \
-		/usr/local/openresty/site/lualib
+		/etc/letsencrypt
 	@buildah run $${CONTAINER} sh -c \
 	'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty//nginx/html/* /etc/init.d/* /etc/conf.d/*' 
 	@buildah copy $${CONTAINER} src/proxy/conf/. /opt/proxy/conf/
