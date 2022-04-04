@@ -1,12 +1,13 @@
 name: podx builds
-on:
-  workflow_dispatch  
+on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
