@@ -8,9 +8,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: build openresty
-        run: 
-          CONTAINER=$(buildah from docker.io/openresty/openresty:alpine-apk )
-          buildah run ${CONTAINER} -- sh -c 'printenv'|| true
+        run: build-openresty
+          #
+          # CONTAINER=$(buildah from docker.io/openresty/openresty:alpine-apk )
+          # buildah run ${CONTAINER} -- sh -c 'printenv' || true
           # buildah run ${CONTAINER} openresty -V || true
 
           
