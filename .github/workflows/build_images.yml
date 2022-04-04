@@ -1,5 +1,6 @@
 name: podx builds
-on: workflow_dispatch
+on: push
+# on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -9,7 +10,7 @@ jobs:
       - name: build openresty
         run: 
           CONTAINER=$(buildah from docker.io/openresty/openresty:alpine-apk )
-          buildah run ${CONTAINER} -- openresty -V || true
+          buildah run ${CONTAINER} -- sh -c 'printenv'|| true
           # buildah run ${CONTAINER} openresty -V || true
 
           
