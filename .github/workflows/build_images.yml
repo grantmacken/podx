@@ -9,8 +9,8 @@ jobs:
       - name: build openresty
         run: 
           CONTAINER=$(buildah from docker.io/openresty/openresty:alpine-apk )
-          buildah run ${CONTAINER} openresty -v || true
-          buildah run ${CONTAINER} openresty -V || true
+          buildah run ${CONTAINER} -- openresty -V || true
+          # buildah run ${CONTAINER} openresty -V || true
 
           
       # - name: Login to GitHub Container Registry
