@@ -262,6 +262,8 @@ endif
 .PHONY: build-openresty
 build-openresty: ## buildah build: openresty as base build for podx
 	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk )
+
+sdssdsdsds:
 	@buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
 		/opt/proxy/html \
@@ -284,6 +286,8 @@ build-openresty: ## buildah build: openresty as base build for podx
 	@buildah config --entrypoint '[ "openresty"]' $${CONTAINER}
 	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
+
+xxxxxxx:
 	@buildah tag localhost/$(call Origin,$@) ghcr.io/grantmacken/$(call Build,$@):$(FROM_OPENRESTY_VER)
 ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/grantmacken/$(call Build,$@):$(FROM_OPENRESTY_VER)

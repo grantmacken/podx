@@ -5,12 +5,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/checkout@v3
+      - name: build openresty
+        run: 
+          CONTAINER=$(buildah from docker.io/openresty/openresty:alpine-apk )
+          buildah run ${CONTAINER} sh -c 'openresty -v' || true
+          buildah run ${CONTAINER} sh -c 'openresty -V' || true
+
+          
+      # - name: Login to GitHub Container Registry
+      #   uses: docker/login-action@v1
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+
