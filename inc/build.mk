@@ -261,59 +261,35 @@ endif
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
 .PHONY: build-openresty
 build-openresty: ## buildah build: openresty as base build for podx
-	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk )
-
-sdssdsdsds:
+	@podman pull docker.io/openresty/openresty:alpine-apk
+	@podman run openresty/openresty:alpine-apk sh -c 'openresty -v' &> or.ver
+	@VERSION=$(shell sed 's/.*openresty\///' or.ver)
+	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk)
 	@buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
 		/opt/proxy/html \
 		/opt/proxy/logs \
 		/opt/proxy/conf \
 		/etc/letsencrypt
-	@buildah run $${CONTAINER} sh -c \
-	'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty//nginx/html/* /etc/init.d/* /etc/conf.d/*' 
 	@buildah copy $${CONTAINER} src/proxy/conf/. /opt/proxy/conf/
+	@buildah run $${CONTAINER} sh -c 'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty/nginx/html/* /etc/init.d/* /etc/conf.d/*' 
 	@buildah config --workingdir /opt/proxy/ $${CONTAINER} 
 	@buildah config --label org.opencontainers.image.base.name=openresty/openresty:alpine-apk $${CONTAINER} # image is built FROM
-	@buildah config --label org.opencontainers.image.title='base openresty server' $${CONTAINER} # title
-	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@): image with added dirs. To be used in stdin-stdout podx workflow' $${CONTAINER} # description
+	@buildah config --label org.opencontainers.image.title='nginx reverse-proxy and cache server' $${CONTAINER} # title
+	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@): image used as a running container in a podman pod' $${CONTAINER} # description
 	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
 	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
 	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version='$(FROM_OPENRESTY_VER)' $${CONTAINER} # version
+	@buildah config --label org.opencontainers.image.version="$${VERSION}" $${CONTAINER} # version
+	@buildah config --env lang=C.UTF-8 $${CONTAINER}
 	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '[ "openresty"]' $${CONTAINER}
-	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
-	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-
-xxxxxxx:
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/grantmacken/$(call Build,$@):$(FROM_OPENRESTY_VER)
+	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/proxy.conf", "-g", "daemon off;"]' $${CONTAINER}
+	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -t' || true
+	@buildah commit --rm --squash $${CONTAINER} ghcr.io/grantmacken/$(call Build,$@):$${VERSION}
+	@buildah tag localhost/$(call Origin,$@) ghcr.io/grantmacken/$(call Build,$@):$${VERSION}
 ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/grantmacken/$(call Build,$@):$(FROM_OPENRESTY_VER)
-endif
-
-.PHONY: build-or
-build-or: ## buildah build: openresty as a reverse proxy container
-	@CONTAINER=$$(buildah from localhost/openresty )
-	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-openresty:$(FROM_OPENRESTY_VER) $${CONTAINER} # image is built FROM
-	@buildah config --label org.opencontainers.image.title='or a reverse-proxy and cache nginx server' $${CONTAINER} # title
-	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@): image used as a running container in a podman pod ' $${CONTAINER} # description
-	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
-	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
-	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
-	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version='$(GHPKG_OR_VER)' $${CONTAINER} # version
-	@# TODO tar conf files
-	@echo ' - tar '
-	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/reverse_proxy.conf -t' || true
-	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/reverse_proxy.conf", "-g", "daemon off;"]' $${CONTAINER}
-	@buildah config --env LANG=C.UTF-8 $${CONTAINER}
-	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/grantmacken/$(call Build,$@):$(GHPKG_OR_VER)
-ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/grantmacken/$(call Build,$@):$(GHPKG_OR_VER)
+	@buildah push ghcr.io/grantmacken/$(call Build,$@):$${VERSION}
 endif
 
 # https://github.com/postcss/postcss-cli
