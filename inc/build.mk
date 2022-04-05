@@ -262,7 +262,7 @@ endif
 .PHONY: build-openresty
 build-openresty: ## buildah build: openresty as base build for podx
 	@podman pull docker.io/openresty/openresty:alpine-apk
-	@podman run openresty/openresty:alpine-apk sh -c 'openresty -v' &> or.ver
+	@podman run openresty/openresty:alpine-apk sh -c 'openresty -v' > or.ver
 	@VERSION=$(shell sed 's/.*openresty\///' or.ver)
 	@echo "$${VERSION}"
 
