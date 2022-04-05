@@ -263,9 +263,7 @@ endif
 build-openresty: ## buildah build: openresty as base build for podx
 	@podman pull docker.io/openresty/openresty:alpine-apk
 	@VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
-	@echo "$${VERSION}"
-
-ddddllkk:
+	@echo "openresty version: $${VERSION}"
 	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk)
 	@buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
@@ -282,16 +280,16 @@ ddddllkk:
 	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
 	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
 	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
-	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	@buildah config --label org.opencontainers.image.url=https://github.com/$(REPO_OWNER)/$(REPO)/pkgs/container/$(call Build,$@) $${CONTAINER} # url
 	@buildah config --label org.opencontainers.image.version="$${VERSION}" $${CONTAINER} # version
 	@buildah config --env lang=C.UTF-8 $${CONTAINER}
 	@buildah config --cmd '' $${CONTAINER}
 	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/proxy.conf", "-g", "daemon off;"]' $${CONTAINER}
-	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -t' || true
-	@buildah commit --rm --squash $${CONTAINER} ghcr.io/grantmacken/$(call Build,$@):$${VERSION}
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/grantmacken/$(call Build,$@):$${VERSION}
+	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -t'
+	@buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):$${VERSION}
+	@buildah tag ghcr.io/$(REPO_OWNER)/$(call Build,$@):$${VERSION} docker.io/$(REPO_OWNER)/$(call Build,$@):$${VERSION}
 ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/grantmacken/$(call Build,$@):$${VERSION}
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$${VERSION}
 endif
 
 # https://github.com/postcss/postcss-cli
