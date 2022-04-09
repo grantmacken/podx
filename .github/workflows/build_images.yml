@@ -13,9 +13,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build openresty
-        run: make build-openresty
-      - name: build w3m
-        run: make build-w3m
+      - name: build images
+        run: |
+          make build-alpine
+          make build-openresty
+          make build-w3m
 
 
