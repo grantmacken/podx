@@ -238,10 +238,9 @@ endif
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
 .PHONY: build-openresty
 build-openresty: ## buildah build: openresty as base build for podx
-	@podman pull docker.io/openresty/openresty:alpine-apk
-	@VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
-	@echo "openresty version: $${VERSION}"
 	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk)
+	@VERSION="$$(podman run $${CONTAINER} sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
+	@echo "openresty version: $${VERSION}"
 	@buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
 		/opt/proxy/html \
