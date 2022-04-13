@@ -76,7 +76,7 @@ build-w3m: ## buildah build $(call Origin,$@)
 	@buildah config --label org.opencontainers.image.version='v$${VERSION}' $${CONTAINER} # version
 	@buildah config --cmd '' $${CONTAINER}
 	@#default to dump
-	@buildah config --entrypoint '["w3m" "-dump" ]' $${CONTAINER}
+	@buildah config --entrypoint '["w3m","-dump" ]' $${CONTAINER}
 	@buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_W3M_VER)
