@@ -73,26 +73,27 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 endif
 
-
 # https://pkgs.alpinelinux.org/packages?name=curl&branch=v3.14
 .PHONY: build-curl
 build-curl: ## buildah build $(call Origin,$@) 
-	@CONTAINER=$$(buildah from localhost/alpine)
-	@buildah run $${CONTAINER} apk add --no-cache $(call Origin,$@)
-	@buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
-	@buildah config --label org.opencontainers.image.title='alpine based $(call Origin,$@) image' $${CONTAINER} # title
-	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
-	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
-	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
-	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
-	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version='$(GHPKG_CURL_VER)' $${CONTAINER} # version
-	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '["curl"]' $${CONTAINER}
-	@buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-	@buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CURL_VER)
+	echo 'from: ghcr.io/$(REPO_OWNER)/podx-alpine:$(ALPINE_VER)'
+	CONTAINER=$$(buildah from ghcr.io/$(REPO_OWNER)/podx-alpine:$(ALPINE_VER))
+	buildah run $${CONTAINER} apk add --no-cache $(call Origin,$@)
+	VERSION=$$(buildah run $${CONTAINER}  sh -c 'curl --version 2>&1 | tee' | grep -oP '^curl \K(\d+\.){2}\d+')
+	sed -i "s/CURL_VER=.*/CURL_VER=v$${VERSION}/" .env
+	buildah config --label org.opencontainers.image.base.name=$(REPO_OWNER)/podx-alpine:$(ALPINE_VER) $${CONTAINER} # image is built FROM
+	buildah config --label org.opencontainers.image.title='alpine based $(call Origin,$@) image' $${CONTAINER} # title
+	buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
+	buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	buildah config --label org.opencontainers.image.url=https://github.com/$(REPO_OWNER)/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	buildah config --label org.opencontainers.image.version='v$${VERSION}' $${CONTAINER} # version
+	buildah config --cmd '' $${CONTAINER}
+	buildah config --entrypoint '["curl"]' $${CONTAINER}
+	@buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CURL_VER)
+	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 endif
 
 .PHONY: build-cmark
@@ -113,8 +114,7 @@ build-cmark: ## buildah build $(call Origin,$@)
 	buildah config --cmd '' $${CONTAINER}
 	#default to dump
 	buildah config --entrypoint '["cmark", "--to", "xml"]' $${CONTAINER}
-	buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
-	buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 endif
