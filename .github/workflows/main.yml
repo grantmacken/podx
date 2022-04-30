@@ -16,7 +16,7 @@ jobs:
       - name: build images
         run: |
           make build-alpine
-          make build-openresty
           make build-w3m
           make build-cmark
+          #make build-openresty
           podman images
