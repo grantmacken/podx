@@ -17,6 +17,7 @@ jobs:
         run: |
           make build-alpine
           make build-w3m
+          make build-curl
           make build-cmark
-          #make build-openresty
+          make build-openresty
           podman images
