@@ -1,13 +1,6 @@
-build
-deploy
-checks
-site
-.tmp
+_*
 .git
-src/proxy/conf/tmp/
-container-or.service
-container-xq.service
-pod-podx.service
+
 
 
 

@@ -18,5 +18,6 @@ jobs:
           make build-alpine
           make build-openresty
           make build-w3m
+          make build-cmark
 
 
