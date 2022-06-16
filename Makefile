@@ -24,30 +24,30 @@ Origin = $(patsubst build-%,%,$1)
 
 .PHONY: build-alpine
 build-alpine: ## buildah build alpine with added directories and entrypoint
-	@echo "build $(call Build,$@) FROM docker.io/$(call Origin,$@):latest"
+	echo "build $(call Build,$@) FROM docker.io/$(call Origin,$@):latest"
 	podman pull docker.io/alpine:latest
 	VERSION=$$(podman run --rm docker.io/alpine:latest /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
 	sed -i "s/ALPINE_VER=.*/ALPINE_VER=v$${VERSION}/" .env
-	@CONTAINER=$$(buildah from docker.io/$(call Origin,$@):$${VERSION})
-	@buildah run $${CONTAINER} mkdir -p -v  \
+	CONTAINER=$$(buildah from docker.io/$(call Origin,$@):$${VERSION})
+	buildah run $${CONTAINER} mkdir -p -v  \
 		/opt/proxy/conf \
 		/opt/proxy/html \
 		/etc/letsencrypt \
 		/usr/local/xqerl/code \
 		/usr/local/xqerl/priv/static/assets # setting up directories
-	@buildah config --workingdir /opt/proxy/html $${CONTAINER} # setting working dir where files is the static-assets volume can be found
-	@buildah config --label org.opencontainers.image.base.name=$(call Origin,$@):$${VERSION} $${CONTAINER} # image is built FROM
-	@buildah config --label org.opencontainers.image.title='base $(call Origin,$@) image' $${CONTAINER} # title
-	@buildah config --label org.opencontainers.image.descriptiion='A base alpine FROM container. Built in dirs for openresty and xqerl' $${CONTAINER} # description
-	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
-	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
-	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
-	@buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version='v$${VERSION}' $${CONTAINER} # version
-	@buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
-	@#buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+	buildah config --workingdir /opt/proxy/html $${CONTAINER} # setting working dir where files is the static-assets volume can be found
+	buildah config --label org.opencontainers.image.base.name=$(call Origin,$@):$${VERSION} $${CONTAINER} # image is built FROM
+	buildah config --label org.opencontainers.image.title='base $(call Origin,$@) image' $${CONTAINER} # title
+	buildah config --label org.opencontainers.image.descriptiion='A base alpine FROM container. Built in dirs for openresty and xqerl' $${CONTAINER} # description
+	buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	buildah config --label org.opencontainers.image.version='v$${VERSION}' $${CONTAINER} # version
+	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+	#buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 ifdef GITHUB_ACTIONS
-	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+	buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 endif
 
 .PHONY: build-w3m
@@ -119,7 +119,6 @@ ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 endif
 
-
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
 .PHONY: build-openresty
 build-openresty: ## buildah build: openresty as base build for podx
@@ -155,3 +154,120 @@ ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 endif
 
+# .PHONY: build-tinylr
+# build-tinylr: ## buildah build cssnano
+# 	CONTAINER=$$(buildah from docker.io/node:alpine$(ALPINE_VER))
+# 	buildah run $${CONTAINER} npm install -g make-livereload
+	#buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+
+.PHONY: build-node
+build-node: ## buildah build node
+	echo "build base $(call Origin,$@) image"
+	podman pull docker.io/node:current-alpine
+	VERSION=$$(podman run --rm docker.io/node:current-alpine /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
+	sed -i "s/NODE_VER=.*/NODE_VER=v$${VERSION}/" .env
+	CONTAINER=$$(buildah from docker.io/node:current-alpine)
+	buildah run $${CONTAINER} mkdir -p -v  \
+		/opt/proxy/conf \
+		/opt/proxy/html \
+		/etc/letsencrypt \
+		/usr/local/xqerl/code \
+		/usr/local/xqerl/priv/static/assets # setting up directories
+	buildah config --workingdir /usr/local/xqerl/priv/static/assets $${CONTAINER} # setting working dir where files is the static-assets volume can be found
+	buildah config --label org.opencontainers.image.base.name=node:current-alpine $${CONTAINER} # image is built FROM
+	buildah config --label org.opencontainers.image.title='base $(call Origin,$@) image' $${CONTAINER} # title
+	buildah config --label org.opencontainers.image.descriptiion='A base alpine FROM container. Built in dirs for static assets' $${CONTAINER} # description
+	buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	buildah config --label org.opencontainers.image.version='v$${VERSION}' $${CONTAINER} # version
+	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+endif
+
+.PHONY: build-browsersync
+build-browsersync: ## buildah build node
+	echo "build  podx-$(call Origin,$@) image"
+	echo 'from: ghcr.io/$(REPO_OWNER)/podx-node:$(NODE_VER)'
+	CONTAINER=$$(buildah from ghcr.io/$(REPO_OWNER)/podx-node:$(NODE_VER))
+	buildah run $${CONTAINER} npm install -g browser-sync
+	buildah config --cmd '' $${CONTAINER}
+	buildah config --entrypoint '["browser-sync"]' $${CONTAINER}
+	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(NODE_VER)
+
+# .PHONY: bs
+# bs:
+# 	podman run --rm -it --name bs \
+# 		-p 3000:3000 \
+#     -p 3001:3001 \
+# 		--mount  type=volume,target=/usr/local/xqerl/priv/static/assets,source=static-assets \
+# 		ghcr.io/grantmacken/podx-browsersync:$(NODE_VER) https://gmack.nz --no-open --files './**/*.css' 
+
+# xxxxxxx:
+#         @CONTAINER=$$(buildah from docker.io/node:alpine$(FROM_ALPINE_VER))
+#         @buildah run $${CONTAINER} npm install -g cssnano postcss postcss-cli
+#         @buildah run $${CONTAINER} mkdir -p -v /opt/proxy/html
+#         @buildah config --workingdir /opt/proxy/html $${CONTAINER}
+#         @buildah config --cmd '' $${CONTAINER}
+#         @buildah config --entrypoint '["/usr/local/bin/postcss"]' $${CONTAINER}
+#         @buildah commit $${CONTAINER} cssnano
+#         @buildah config --label org.opencontainers.image.base.name=node:alpine$(FROM_ALPINE_VER) $${CONTAINER} # image is built FROM
+#         @buildah config --label org.opencontainers.image.title='node-alpine based image$(call Origin,$@) image' $${CONTAINER} # title
+#         @buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@) to be used to in stdin-stdout podx workflow' $${CONTAINER} # description
+#         @buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+#         @buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+#         @buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+#         @buildah config --label org.opencontainers.image.url=https://github.com/grantmacken/podx/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+#         @buildah config --label org.opencontainers.image.version='$(GHPKG_CSSNANO_VER)' $${CONTAINER} # version
+#         @buildah config --cmd '' $${CONTAINER}
+#         @buildah commit --rm $${CONTAINER} localhost/$(call Origin,$@)
+#         @buildah tag localhost/$(call Origin,$@) ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CSSNANO_VER)
+# ifdef GITHUB_ACTIONS
+#         @buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CSSNANO_VER)
+# endif
+
+.PHONY: build-lsps
+build-lsps:
+	echo "build $(call Build,$@) FROM docker.io/$(call Origin,$@):latest"
+	podman pull docker.io/alpine:latest
+	VERSION=$$(podman run --rm docker.io/alpine:latest /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
+	echo "Alpine Version: $${VERSION}"
+	CONTAINER=$$(buildah from docker.io/alpine:latest)
+	buildah run $${CONTAINER} apk add --no-cache build-base git ninja
+	buildah config --workingdir /home $${CONTAINER} 
+	buildah run $${CONTAINER} /bin/sh \
+	-c 'git clone --depth 1 --branch "2.6.0" https://github.com/sumneko/lua-language-server \
+  && cd lua-language-server \
+  && git submodule update --init --recursive \
+  && ninja -C 3rd/luamake -f compile/ninja/linux.ninja \
+  && ./3rd/luamake/luamake rebuild \
+	&& ls -alR ./build'
+	buildah commit --rm $${CONTAINER} localhost/lsp-buildr
+	CONTAINER=$$(buildah from docker.io/alpine:latest)
+	buildah config --workingdir /home $${CONTAINER} 
+	buildah  copy --from 'localhost/lsp-buildr'  $${CONTAINER}  '/home' '/home'
+	buildah config --workingdir /home/lua-language-server $${CONTAINER}
+	buildah config --cmd '' $${CONTAINER}
+	buildah config --entrypoint '[ "./bin/lua-language-server", "-E", "./bin/main.lua" ]' $${CONTAINER}
+	VERSION=$$(buildah run $${CONTAINER}  sh -c '/home/lua-language-server/bin/lua-language-server --version')
+	buildah config --label org.opencontainers.image.base.name=alpine $${CONTAINER} # image is built FROM
+	buildah config --label org.opencontainers.image.title='lua-language-server image' $${CONTAINER} # title
+	buildah config --label org.opencontainers.image.descriptiion='sumneko lua language server  ' $${CONTAINER} # description
+	buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	buildah config --label org.opencontainers.image.source'=https://github.com/$(REPO_OWNER)/$(REPO)' $${CONTAINER} # where the image is built
+	buildah config --label org.opencontainers.image.documentation='https://github.com/$(REPO_OWNER)/$(REPO)' $${CONTAINER} # image documentation
+	buildah config --label org.opencontainers.image.url='https://github.com/grantmacken/podx/pkgs/container/lua-language-server' $${CONTAINER} # url
+	buildah config --label org.opencontainers.image.version='v$${VERSION}' $${CONTAINER} # version
+	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/lua-language-server:v$${VERSION}
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/lua-language-server:v$${VERSION}
+endif
+	buildah rmi localhost/lsp-buildr
+
+
+
+.PHONY: lsp-run
+lsp-run:
+	podman run -it --rm  --entrypoint  /bin/ash localhost/lsp-buildr
