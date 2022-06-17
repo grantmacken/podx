@@ -272,7 +272,7 @@ lsp-erlang:
 	OTP_VERSION=$$(podman run --rm docker.io/erlang:alpine sh -c 'cat /usr/local/lib/erlang/releases/*/OTP_VERSION')
 	echo " - uses erlang OTP version: $${OTP_VERSION}"
 	CONTAINER=$$(buildah from docker.io/erlang:alpine)
-	buildah run $${CONTAINER} apk add --no-cache make openssl ncurses-libs tzdata libstdc++ git tar
+	buildah run $${CONTAINER} apk add --no-cache build-base openssl ncurses-libs tzdata libstdc++ git tar
 	buildah run $${CONTAINER} /bin/sh \
 	-c 'git clone --depth 1 https://github.com/erlang-ls/erlang_ls \
   && cd erlang_ls && make && make install'
@@ -282,7 +282,7 @@ lsp-erlang:
 	buildah config --label org.opencontainers.image.description='An Erlang server implementing Language Server Protocol' $${CONTAINER}
 	buildah config --label org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY} $${CONTAINER} # where the image is built
 	#buildah config --label org.opencontainers.image.documentation=https://github.com//${GITHUB_REPOSITORY} $${CONTAINER} # image documentation
-	buildah config --label org.opencontainers.image.version=:v$${OTP_VERSION} ${CONTAINER} # version
+	buildah config --label org.opencontainers.image.version=:v$${OTP_VERSION} $${CONTAINER} # version
 	buildah config --workingdir /home $${CONTAINER}
 	buildah config --entrypoint '[ "erlang_ls", "--transport", "stdio"]' $${CONTAINER}
 	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/erlang_ls:v$${OTP_VERSION}
