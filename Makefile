@@ -286,6 +286,7 @@ lsp-erlang:
 	buildah config --workingdir /home $${CONTAINER}
 	buildah config --entrypoint '[ "erlang_ls", "--transport", "stdio"]' $${CONTAINER}
 	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/erlang_ls:v$${OTP_VERSION}
+	podman images
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/erlang_ls:v$${OTP_VERSION}
 endif
