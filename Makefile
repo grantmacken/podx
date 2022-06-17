@@ -272,7 +272,7 @@ lsp-erlang:
 	OTP_VERSION=$$(podman run --rm docker.io/erlang:alpine sh -c 'cat /usr/local/lib/erlang/releases/*/OTP_VERSION')
 	echo " - uses erlang OTP version: $${OTP_VERSION}"
 	CONTAINER=$$(buildah from docker.io/erlang:alpine)
-	buildah run $${CONTAINER} apk add --no-cache openssl ncurses-libs tzdata libstdc++ git tar
+	buildah run $${CONTAINER} apk add --no-cache make openssl ncurses-libs tzdata libstdc++ git tar
 	buildah run $${CONTAINER} /bin/sh \
 	-c 'git clone --depth 1 https://github.com/erlang-ls/erlang_ls \
   && cd erlang_ls && make && make install'
