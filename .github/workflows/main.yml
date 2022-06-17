@@ -20,5 +20,5 @@ jobs:
           # make build-curl
           # make build-cmark
           # make build-openresty
-          make build-lsps
+          make lsp-erlang
           podman images

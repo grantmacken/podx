@@ -228,9 +228,8 @@ build-browsersync: ## buildah build node
 #         @buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):$(GHPKG_CSSNANO_VER)
 # endif
 
-.PHONY: build-lsps
-build-lsps:
-	echo "build $(call Build,$@) FROM docker.io/$(call Origin,$@):latest"
+.PHONY: lsp-lua
+lsp-lua:
 	podman pull docker.io/alpine:latest
 	VERSION=$$(podman run --rm docker.io/alpine:latest /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
 	echo "Alpine Version: $${VERSION}"
@@ -248,9 +247,7 @@ build-lsps:
 	CONTAINER=$$(buildah from docker.io/alpine:latest)
 	buildah config --workingdir /home $${CONTAINER} 
 	buildah  copy --from 'localhost/lsp-buildr'  $${CONTAINER}  '/home' '/home'
-	buildah config --workingdir /home/lua-language-server $${CONTAINER}
 	buildah config --cmd '' $${CONTAINER}
-	buildah config --entrypoint '[ "./bin/lua-language-server", "-E", "./bin/main.lua" ]' $${CONTAINER}
 	VERSION=$$(buildah run $${CONTAINER}  sh -c '/home/lua-language-server/bin/lua-language-server --version')
 	buildah config --label org.opencontainers.image.base.name=alpine $${CONTAINER} # image is built FROM
 	buildah config --label org.opencontainers.image.title='lua-language-server image' $${CONTAINER} # title
@@ -260,6 +257,8 @@ build-lsps:
 	buildah config --label org.opencontainers.image.documentation='https://github.com/$(REPO_OWNER)/$(REPO)' $${CONTAINER} # image documentation
 	buildah config --label org.opencontainers.image.url='https://github.com/grantmacken/podx/pkgs/container/lua-language-server' $${CONTAINER} # url
 	buildah config --label org.opencontainers.image.version='v$${VERSION}' $${CONTAINER} # version
+	buildah config --workingdir /home/lua-language-server $${CONTAINER}
+	buildah config --entrypoint '[ "./bin/lua-language-server", "-E", "./bin/main.lua" ]' $${CONTAINER}
 	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/lua-language-server:v$${VERSION}
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/lua-language-server:v$${VERSION}
@@ -267,7 +266,33 @@ endif
 	buildah rmi localhost/lsp-buildr
 
 
+.PHONY: lsp-erlang
+lsp-erlang:
+	podman pull docker.io/alpine:latest
+	ALPINE_VERSION=$$(podman run --rm docker.io/alpine:latest /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
+	podman pull docker.io/erlang:alpine
+	OTP_VERSION=$$(podman run --rm docker.io/erlang:alpine sh -c 'cat /usr/local/lib/erlang/releases/*/OTP_VERSION')
+	echo " - uses alpine version: $${ALPINE_VERSION}"
+	echo " - uses erlang OTP version: $${OTP_VERSION}"
+	CONTAINER=$$(buildah from docker.io/erlang:alpine)
+	buildah run $${CONTAINER} apk add --no-cache build-base git tar libstdc++
+	buildah run $${CONTAINER} /bin/sh \
+	-c 'git clone --depth 1 https://github.com/erlang-ls/erlang_ls \
+  && cd erlang_ls && make && make install'
+	# VERSION=$$(buildah run $${CONTAINER}  sh -c '/usr/local/bin/erlang_ls --version')
+	buildah config --label org.opencontainers.image.base.name=erlang_ls $${CONTAINER}
+	buildah config --label org.opencontainers.image.title='lsp erlang server' $${CONTAINER}
+	buildah config --label org.opencontainers.image.description='An Erlang server implementing Language Server Protocol' $${CONTAINER}
+buildah config --label org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY} $${CONTAINER} # where the image is built
+	#buildah config --label org.opencontainers.image.documentation=https://github.com//${GITHUB_REPOSITORY} $${CONTAINER} # image documentation
+	buildah config --label org.opencontainers.image.version=:v$${OTP_VERSION} ${CONTAINER} # version
+	buildah config --workingdir /home $${CONTAINER}
+	buildah config --entrypoint '[ "erlang_ls", "--transport", "stdio"]' $${CONTAINER}
+	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/erlang_ls:v$${OTP_VERSION}
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/erlang_ls:v$${OTP_VERSION}
+endif
 
-.PHONY: lsp-run
-lsp-run:
-	podman run -it --rm  --entrypoint  /bin/ash localhost/lsp-buildr
+.PHONY: t
+t:
+	podman run --rm  -i localhost/erlang_ls:v25.0.1 
