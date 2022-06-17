@@ -268,14 +268,11 @@ endif
 
 .PHONY: lsp-erlang
 lsp-erlang:
-	podman pull docker.io/alpine:latest
-	ALPINE_VERSION=$$(podman run --rm docker.io/alpine:latest /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
 	podman pull docker.io/erlang:alpine
 	OTP_VERSION=$$(podman run --rm docker.io/erlang:alpine sh -c 'cat /usr/local/lib/erlang/releases/*/OTP_VERSION')
-	echo " - uses alpine version: $${ALPINE_VERSION}"
 	echo " - uses erlang OTP version: $${OTP_VERSION}"
 	CONTAINER=$$(buildah from docker.io/erlang:alpine)
-	buildah run $${CONTAINER} apk add --no-cache build-base git tar libstdc++
+	buildah run $${CONTAINER} apk add --no-cache openssl ncurses-libs tzdata libstdc++ git tar
 	buildah run $${CONTAINER} /bin/sh \
 	-c 'git clone --depth 1 https://github.com/erlang-ls/erlang_ls \
   && cd erlang_ls && make && make install'
@@ -283,7 +280,7 @@ lsp-erlang:
 	buildah config --label org.opencontainers.image.base.name=erlang_ls $${CONTAINER}
 	buildah config --label org.opencontainers.image.title='lsp erlang server' $${CONTAINER}
 	buildah config --label org.opencontainers.image.description='An Erlang server implementing Language Server Protocol' $${CONTAINER}
-buildah config --label org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY} $${CONTAINER} # where the image is built
+	buildah config --label org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY} $${CONTAINER} # where the image is built
 	#buildah config --label org.opencontainers.image.documentation=https://github.com//${GITHUB_REPOSITORY} $${CONTAINER} # image documentation
 	buildah config --label org.opencontainers.image.version=:v$${OTP_VERSION} ${CONTAINER} # version
 	buildah config --workingdir /home $${CONTAINER}
