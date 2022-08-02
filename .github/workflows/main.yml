@@ -15,10 +15,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: build images
         run: |
-          # make build-alpine
-          # make build-w3m
-          # make build-curl
-          # make build-cmark
-          # make build-openresty
-          make lsp-erlang
+          make build-alpine
+          make build-w3m
+          make build-curl
+          make build-cmark
+          make build-openresty
+          # make lsp-erlang
           podman images

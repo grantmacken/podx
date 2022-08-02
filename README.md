@@ -1,18 +1,53 @@
 # podx
 
-WIP: A bundle of docker images: 
+A bundle of container images: 
  
-1. reverse proxy for a containerized xerl: 
-2. dockerized web dev preprocessing tool chain.
+1. reverse proxy built for a containerized xqerl: 
+2. dockerized web development preprocessing tool chain.
 
 Both reverse proxy and xqerl containers run in a podman pod,
 I named the pod 'podx' hence the name of this repo,
 The built images built on this repo are all prefixed podx.
 
-Some stuff in this repo, will be moved out soon.
+## a dockerized web development preprocessing tool chain
+
+All images using start from latest alpine
+
+### podx-alpine
  
-The stuff in this repo will from now on concentrate 
-on building helper images for web development projects.
+ - add dir paths
+
+### podx-w3m
+ 
+terminal browser mainly used to dump browser text
+
+### podx-curl
+
+From podx-alpine
+Entrypoint 'curl' exec
+
+### podx-cmark
+
+From podx-alpine
+Used to: convert commonmark (markdown ) into commonmark XML
+Entrypoint: `cmark --to xml`
+
+XQuery typeswitch expression can be used to transform into HTML
+
+### podx-openresty
+
+From openresty/openresty:alpine-apk
+Used as: reverse proxy for xqerl
+Entrypoint: `openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -g "daemon off;"`
+Proxy configuration: copied from ./src/proxy
+Directories:
+ -  `/etc/letsencypt` dir created for letsencypt files
+ - `/opt/proxy/*` dirs created for nginx files
+ - `/usr/local/xqerl/priv/static/assets`  xqerl static assets
+
+
+
+
 
 
 
