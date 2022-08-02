@@ -15,35 +15,38 @@ All images using start from latest alpine
 
 ### podx-alpine
  
- - add dir paths
+ - Directories: additional paths
 
 ### podx-w3m
- 
+
+ - From: podx-alpine
+ - Entrypoint: 'w3m' exec
+
 terminal browser mainly used to dump browser text
 
 ### podx-curl
 
-From podx-alpine
-Entrypoint 'curl' exec
+ - From: podx-alpine
+ - Entrypoint: 'curl' exec
 
 ### podx-cmark
 
-From podx-alpine
-Used to: convert commonmark (markdown ) into commonmark XML
-Entrypoint: `cmark --to xml`
+ - From podx-alpine
+ - Used to: convert commonmark (markdown ) into commonmark XML
+ - Entrypoint: `cmark --to xml`
 
 XQuery typeswitch expression can be used to transform into HTML
 
 ### podx-openresty
 
-From openresty/openresty:alpine-apk
-Used as: reverse proxy for xqerl
-Entrypoint: `openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -g "daemon off;"`
-Proxy configuration: copied from ./src/proxy
-Directories:
- -  `/etc/letsencypt` dir created for letsencypt files
- - `/opt/proxy/*` dirs created for nginx files
- - `/usr/local/xqerl/priv/static/assets`  xqerl static assets
+ - From: openresty/openresty:alpine-apk
+ - Used as: reverse proxy for xqerl
+ - Entrypoint: `openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -g "daemon off;"`
+ - Proxy configuration: copied from ./src/proxy
+ - Directories:
+   -  `/etc/letsencypt` dir created for letsencypt files
+   - `/opt/proxy/*` dirs created for nginx files
+   - `/usr/local/xqerl/priv/static/assets`  xqerl static assets
 
 
 
