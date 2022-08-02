@@ -22,6 +22,9 @@ help: ## show this help
 Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
+.PHONY: build-all
+build-all: build-alpine build-w3m build-curl build-cmark build-openresty
+
 .PHONY: build-alpine
 build-alpine: ## buildah build alpine with added directories and entrypoint
 	echo "build $(call Build,$@) FROM docker.io/$(call Origin,$@):latest"
@@ -132,7 +135,8 @@ build-openresty: ## buildah build: openresty as base build for podx
 		/opt/proxy/html \
 		/opt/proxy/logs \
 		/opt/proxy/conf \
-		/etc/letsencrypt
+		/etc/letsencrypt \
+		/usr/local/xqerl/priv/static/assets # setting up directories
 	@buildah copy $${CONTAINER} src/proxy/conf/. /opt/proxy/conf/
 	@buildah run $${CONTAINER} sh -c 'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty/nginx/html/* /etc/init.d/* /etc/conf.d/*' 
 	@buildah config --workingdir /opt/proxy/ $${CONTAINER} 
