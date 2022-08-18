@@ -124,14 +124,16 @@ endif
 
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
 #
-certs: src/proxy/certs/example.com.crt \
-	src/proxy/certs/dhparam.pem \
-	src/proxy/conf/self_signed.conf
+certs: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/self_signed.conf
+
+certs-clean:
+	rm -f src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/self_signed.conf
+
 
 src/proxy/certs/example.com.key:
 	[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	echo '##[ $(notdir $@) ]##'
-	openssl genrsa -out $@ 2048
+	 openssl genrsa -out $@ 2048
 
 src/proxy/certs/example.com.csr: src/proxy/certs/example.com.key
 	[ -d $(dir $@) ] || mkdir -p $(dir $@)
@@ -144,7 +146,7 @@ src/proxy/certs/example.com.csr: src/proxy/certs/example.com.key
 src/proxy/certs/example.com.crt: src/proxy/certs/example.com.csr
 	[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	echo '##[ $(notdir $@) ]##'
-	openssl x509 -req -days 365 -in $< -signkey certs/example.com.key -out $@ -sha512
+	openssl x509 -req -days 365 -in $< -signkey src/proxy/certs/example.com.key -out $@ -sha512
 
 src/proxy/certs/dhparam.pem:
 	[ -d $(dir $@) ] || mkdir -p $(dir $@)
