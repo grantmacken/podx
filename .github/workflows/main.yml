@@ -20,5 +20,5 @@ jobs:
           # make build-curl
           # make build-cmark
           make certs
-          # make build-openresty
+          make build-openresty
           # podman images

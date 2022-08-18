@@ -176,6 +176,7 @@ build-openresty: ## buildah build: openresty as base build for podx
 		/etc/letsencrypt \
 		/usr/local/xqerl/priv/static/assets # setting up directories
 	@buildah copy $${CONTAINER} src/proxy/conf/. /opt/proxy/conf/
+	@buildah copy $${CONTAINER} src/proxy/certs/. /opt/proxy/certs/
 	@buildah run $${CONTAINER} sh -c 'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty/nginx/html/* /etc/init.d/* /etc/conf.d/*' 
 	@buildah config --workingdir /opt/proxy/ $${CONTAINER} 
 	@buildah config --label org.opencontainers.image.base.name=openresty/openresty:alpine-apk $${CONTAINER} # image is built FROM
