@@ -125,6 +125,7 @@ endif
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
 #
 certs: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/self_signed.conf
+certs-pem: src/proxy/certs/example.com.pem # or must be running locally
 
 certs-clean:
 	rm -f src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/self_signed.conf
@@ -154,20 +155,21 @@ src/proxy/certs/dhparam.pem:
 	openssl dhparam -out $@ 2048
 
 src/proxy/conf/self_signed.conf:
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@echo '## $(notdir $@) ##'
-	@echo "ssl_certificate /opt/proxy/certs/example.com.crt;" > $@
-	@echo "ssl_certificate_key /opt/proxy/certs/example.com.key;" >> $@
-	@echo "ssl_dhparam /opt/proxy/certs/dhparam.pem;" >> $@
+	[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	echo '## $(notdir $@) ##'
+	echo "ssl_certificate /opt/proxy/certs/example.com.crt;" > $@
+	echo "ssl_certificate_key /opt/proxy/certs/example.com.key;" >> $@
+	echo "ssl_dhparam /opt/proxy/certs/dhparam.pem;" >> $@
+
 
 .PHONY: build-openresty
 build-openresty: ## buildah build: openresty as base build for podx
-	@podman pull docker.io/openresty/openresty:alpine-apk
-	@VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
+	podman pull docker.io/openresty/openresty:alpine-apk
+	VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
 	sed -i "s/OPENRESTY_VER=.*/OPENRESTY_VER=v$${VERSION}/" .env
-	@echo "openresty version: $${VERSION}"
-	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk)
-	@buildah run $${CONTAINER} mkdir -p \
+	echo "openresty version: $${VERSION}"
+	CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk)
+	buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
 		/opt/proxy/certs \
 		/opt/proxy/html \
@@ -175,23 +177,29 @@ build-openresty: ## buildah build: openresty as base build for podx
 		/opt/proxy/conf \
 		/etc/letsencrypt \
 		/usr/local/xqerl/priv/static/assets # setting up directories
-	@buildah copy $${CONTAINER} src/proxy/conf/. /opt/proxy/conf/
-	@buildah copy $${CONTAINER} src/proxy/certs/. /opt/proxy/certs/
-	@buildah run $${CONTAINER} sh -c 'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty/nginx/html/* /etc/init.d/* /etc/conf.d/*' 
-	@buildah config --workingdir /opt/proxy/ $${CONTAINER} 
-	@buildah config --label org.opencontainers.image.base.name=openresty/openresty:alpine-apk $${CONTAINER} # image is built FROM
-	@buildah config --label org.opencontainers.image.title='nginx reverse-proxy and cache server' $${CONTAINER} # title
-	@buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@): image used as a running container in a podman pod' $${CONTAINER} # description
-	@buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
-	@buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
-	@buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
-	@buildah config --label org.opencontainers.image.url=https://github.com/$(REPO_OWNER)/$(REPO)/pkgs/container/$(call Build,$@) $${CONTAINER} # url
-	@buildah config --label org.opencontainers.image.version="$${VERSION}" $${CONTAINER} # version
-	@buildah config --env lang=C.UTF-8 $${CONTAINER}
-	@buildah config --cmd '' $${CONTAINER}
-	@buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/proxy.conf", "-g", "daemon off;"]' $${CONTAINER}
-	@buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -t'
-	@buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+	buildah copy $${CONTAINER} src/proxy/conf/. /opt/proxy/conf/
+	buildah copy $${CONTAINER} src/proxy/certs/. /opt/proxy/certs/
+	buildah run $${CONTAINER} sh -c 'rm /usr/local/openresty/nginx/conf/*  /usr/local/openresty/nginx/html/* /etc/init.d/* /etc/conf.d/*' 
+	buildah config --workingdir /opt/proxy/ $${CONTAINER} 
+	buildah config --label org.opencontainers.image.base.name=openresty/openresty:alpine-apk $${CONTAINER} # image is built FROM
+	buildah config --label org.opencontainers.image.title='nginx reverse-proxy and cache server' $${CONTAINER} # title
+	buildah config --label org.opencontainers.image.descriptiion='$(call Build,$@): image used as a running container in a podman pod' $${CONTAINER} # description
+	buildah config --label org.opencontainers.image.authors='Grant Mackenzie <$(REPO_OWNER)@gmail.com>' $${CONTAINER} # author
+	buildah config --label org.opencontainers.image.source=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # where the image is built
+	buildah config --label org.opencontainers.image.documentation=https://github.com/$(REPO_OWNER)/$(REPO) $${CONTAINER} # image documentation
+	buildah config --label org.opencontainers.image.url=https://github.com/$(REPO_OWNER)/$(REPO)/pkgs/container/$(call Build,$@) $${CONTAINER} # url
+	buildah config --label org.opencontainers.image.version="$${VERSION}" $${CONTAINER} # version
+	buildah config --env lang=C.UTF-8 $${CONTAINER}
+	buildah config --cmd '' $${CONTAINER}
+	buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/proxy.conf", "-g", "daemon off;"]' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -t'
+	buildah commit $${CONTAINER} $${CONTAINER} localhost/$(call Build,$@):v$${VERSION}
+	podman run --rm --name  or --detach localhost/$(call Build,$@):v$${VERSION}
+	openssl s_client -showcerts -connect example.com:443 </dev/null \
+		| sed -n -e '/-.BEGIN/,/-.END/ p' > src/proxy/certs/example.com.pem
+	buildah copy $${CONTAINER} src/proxy/certs/example.com.pem /opt/proxy/certs/
+	podman stop or
+	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 	@#buildah tag ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION} docker.io/$(REPO_OWNER)/$(call Build,$@):$${VERSION}
 ifdef GITHUB_ACTIONS
 	@buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
