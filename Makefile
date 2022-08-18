@@ -123,6 +123,41 @@ ifdef GITHUB_ACTIONS
 endif
 
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
+#
+certs: src/proxy/certs/example.com.crt \
+	src/proxy/certs/dhparam.pem \
+	src/proxy/conf/self_signed.conf
+
+src/proxy/certs/example.com.key:
+	[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	echo '##[ $(notdir $@) ]##'
+	openssl genrsa -out $@ 2048
+
+src/proxy/certs/example.com.csr: src/proxy/certs/example.com.key
+	[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	echo '##[ $(notdir $@) ]##'
+	openssl req -new -key $<  \
+		-nodes \
+		-subj '/C=NZ/CN=example.com' \
+		-out $@ -sha512
+
+src/proxy/certs/example.com.crt: src/proxy/certs/example.com.csr
+	[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	echo '##[ $(notdir $@) ]##'
+	openssl x509 -req -days 365 -in $< -signkey certs/example.com.key -out $@ -sha512
+
+src/proxy/certs/dhparam.pem:
+	[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	echo '##[ $(notdir $@) ]##'
+	openssl dhparam -out $@ 2048
+
+src/proxy/conf/self_signed.conf:
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo '## $(notdir $@) ##'
+	@echo "ssl_certificate /opt/proxy/certs/example.com.crt;" > $@
+	@echo "ssl_certificate_key /opt/proxy/certs/example.com.key;" >> $@
+	@echo "ssl_dhparam /opt/proxy/certs/dhparam.pem;" >> $@
+
 .PHONY: build-openresty
 build-openresty: ## buildah build: openresty as base build for podx
 	@podman pull docker.io/openresty/openresty:alpine-apk
@@ -132,6 +167,7 @@ build-openresty: ## buildah build: openresty as base build for podx
 	@CONTAINER=$$(buildah from docker.io/openresty/openresty:alpine-apk)
 	@buildah run $${CONTAINER} mkdir -p \
 		/opt/proxy/cache \
+		/opt/proxy/certs \
 		/opt/proxy/html \
 		/opt/proxy/logs \
 		/opt/proxy/conf \
