@@ -192,13 +192,7 @@ build-openresty: ## buildah build: openresty as base build for podx
 	buildah config --env lang=C.UTF-8 $${CONTAINER}
 	buildah config --cmd '' $${CONTAINER}
 	buildah config --entrypoint '[ "openresty", "-p", "/opt/proxy/", "-c", "/opt/proxy/conf/proxy.conf", "-g", "daemon off;"]' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -t'
-	buildah commit $${CONTAINER} $${CONTAINER} localhost/$(call Build,$@):v$${VERSION}
-	podman run --rm --name  or --detach localhost/$(call Build,$@):v$${VERSION}
-	openssl s_client -showcerts -connect example.com:443 </dev/null \
-		| sed -n -e '/-.BEGIN/,/-.END/ p' > src/proxy/certs/example.com.pem
-	buildah copy $${CONTAINER} src/proxy/certs/example.com.pem /opt/proxy/certs/
-	podman stop or
+	buildah run $${CONTAINER} sh -c 'openresty -p /opt/proxy/ -c /opt/proxy/conf/proxy.conf -t' || true
 	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
 	@#buildah tag ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION} docker.io/$(REPO_OWNER)/$(call Build,$@):$${VERSION}
 ifdef GITHUB_ACTIONS
