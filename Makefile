@@ -22,8 +22,19 @@ help: ## show this help
 Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
-.PHONY: build-all
-build-all: build-alpine build-w3m build-curl build-cmark build-openresty
+.PHONY: versions
+versions:
+	podman pull docker.io/alpine:latest
+	VERSION=$$(podman run --rm docker.io/alpine:latest /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
+	sed -i "s/ALPINE_VER=.*/ALPINE_VER=v$${VERSION}/" .env
+	echo " - alpine version: $$VERSION"
+	podman pull docker.io/openresty/openresty:alpine-apk
+	VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
+	sed -i "s/OPENRESTY_VER=.*/OPENRESTY_VER=v$${VERSION}/" .env
+	echo "openresty version: $${VERSION}"
+
+.PHONY: build
+build: build-alpine build-w3m build-curl build-cmark certs build-openresty
 
 .PHONY: build-alpine
 build-alpine: ## buildah build alpine with added directories and entrypoint
@@ -31,7 +42,8 @@ build-alpine: ## buildah build alpine with added directories and entrypoint
 	podman pull docker.io/alpine:latest
 	VERSION=$$(podman run --rm docker.io/alpine:latest /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
 	sed -i "s/ALPINE_VER=.*/ALPINE_VER=v$${VERSION}/" .env
-	CONTAINER=$$(buildah from docker.io/$(call Origin,$@):$${VERSION})
+	echo " - alpine version: $$VERSION"
+	CONTAINER=$$(buildah from docker.io/alpine:$${VERSION})
 	buildah run $${CONTAINER} mkdir -p -v  \
 		/opt/proxy/conf \
 		/opt/proxy/html \
@@ -124,11 +136,11 @@ endif
 
 # https://github.com/openresty/docker-openresty/blob/master/alpine-apk/Dockerfile
 #
-certs: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/self_signed.conf
+certs: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/certs.conf
 certs-pem: src/proxy/certs/example.com.pem # or must be running locally
 
 certs-clean:
-	rm -f src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/self_signed.conf
+	rm -f src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/certs.conf
 
 
 src/proxy/certs/example.com.key:
@@ -154,7 +166,7 @@ src/proxy/certs/dhparam.pem:
 	echo '##[ $(notdir $@) ]##'
 	openssl dhparam -out $@ 2048
 
-src/proxy/conf/self_signed.conf:
+src/proxy/conf/certs.conf:
 	[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	echo '## $(notdir $@) ##'
 	echo "ssl_certificate /opt/proxy/certs/example.com.crt;" > $@
