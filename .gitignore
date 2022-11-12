@@ -1,7 +1,7 @@
 _*
 .git
 src/proxy/certs
-src/proxy/conf/self_signed.conf
+src/proxy/conf/certs.conf
 
 
 

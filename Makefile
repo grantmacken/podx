@@ -140,7 +140,8 @@ certs: src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/con
 certs-pem: src/proxy/certs/example.com.pem # or must be running locally
 
 certs-clean:
-	rm -f src/proxy/certs/example.com.crt src/proxy/certs/dhparam.pem src/proxy/conf/certs.conf
+	echo '##[ $@ ]##'
+	rm -fv src/proxy/certs/*
 
 
 src/proxy/certs/example.com.key:
