@@ -5,6 +5,8 @@ on:
     - main
     paths-ignore:
     - '**/README.md'
+    - '**/.env'
+    - '**/latest'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,8 +24,9 @@ jobs:
       - name: build images
         shell: bash
         run: |
-          # make build-alpine
-          # make build-w3m
+          make versions
+          make lua-language-server
+          # # make build-w3m
           # make build-curl
           # make build-cmark
           # make certs
@@ -31,4 +34,4 @@ jobs:
           echo '----------------'
           cat .env
           echo '----------------'
-          # podman images
+          podman images

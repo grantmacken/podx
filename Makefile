@@ -9,8 +9,8 @@ MAKEFLAGS += --silent
 include .env
 
 .PHONY: help
-help: ## show this help	
-	@cat $(MAKEFILE_LIST) | 
+help: ## show this help
+	@cat $(MAKEFILE_LIST) |
 	grep -oP '^[a-zA-Z_-]+:.*?## .*$$' |
 	sort |
 	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -24,17 +24,52 @@ Origin = $(patsubst build-%,%,$1)
 
 .PHONY: versions
 versions:
-	podman pull docker.io/alpine:latest
-	VERSION=$$(podman run --rm docker.io/alpine:latest /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
-	sed -i "s/ALPINE_VER=.*/ALPINE_VER=v$${VERSION}/" .env
-	echo " - alpine version: $$VERSION"
+	podman pull cgr.dev/chainguard/wolfi-base:latest
+	VERSION=$$(podman run --rm cgr.dev/chainguard/wolfi-base /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
+	sed -i "s/WOLFI_VER=.*/WOLFI_VER=$${VERSION}/" .env
+	echo " - wolfi version: $$VERSION"
+
+
+xxxx: 
 	podman pull docker.io/openresty/openresty:alpine-apk
 	VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
 	sed -i "s/OPENRESTY_VER=.*/OPENRESTY_VER=v$${VERSION}/" .env
 	echo "openresty version: $${VERSION}"
 
+
 .PHONY: build
-build: build-alpine build-w3m build-curl build-cmark certs build-openresty
+build: lua-language-server
+
+# build-alpine build-w3m build-curl build-cmark certs build-openresty
+
+
+clean:
+	rm latest/lua_language_server.txt || true
+
+latest/lua_language_server.txt:
+	mkdir -p $(dir $@)
+	wget -q -O - 'https://api.github.com/repos/LuaLS/lua-language-server/releases/latest' |
+	jq -r '.assets[].browser_download_url' |
+	grep linux-x64.tar.gz | tee $@
+
+lua-language-server: latest/lua_language_server.txt
+	echo '##[ $@ ]##'
+	VERSION=$$(grep -oP '(\d+\.){2}\d+' $< | head -1 )
+	echo $${VERSION}
+	sed -i "s/LUA_LANGUAGE_SERVER=.*/LUA_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
+	cat .env
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah run $${CONTAINER} sh -c 'apk add bash build-base wget' &>/dev/null
+	# buildah run $${CONTAINER} sh -c 'apk add build-base glibc wget'
+	buildah run $${CONTAINER} sh -c 'mkdir -p /app'
+	cat $< | buildah run $${CONTAINER} sh -c 'cat - | wget -q -O- -i- | tar xvz -C /app' &>/dev/null
+	buildah run $${CONTAINER} sh -c '/app/bin/lua-language-server --version'
+	buildah config --entrypoint '/app/bin/lua-language-server' $${CONTAINER}
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+endif
+
 
 .PHONY: build-alpine
 build-alpine: ## buildah build alpine with added directories and entrypoint
@@ -90,7 +125,7 @@ endif
 
 # https://pkgs.alpinelinux.org/packages?name=curl&branch=v3.14
 .PHONY: build-curl
-build-curl: ## buildah build $(call Origin,$@) 
+build-cnurl: ## buildah build $(call Origin,$@) 
 	echo 'from: ghcr.io/$(REPO_OWNER)/podx-alpine:$(ALPINE_VER)'
 	CONTAINER=$$(buildah from ghcr.io/$(REPO_OWNER)/podx-alpine:$(ALPINE_VER))
 	buildah run $${CONTAINER} apk add --no-cache $(call Origin,$@)
