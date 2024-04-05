@@ -55,9 +55,7 @@ latest/lua_language_server.txt:
 lua-language-server: latest/lua_language_server.txt
 	echo '##[ $@ ]##'
 	VERSION=$$(grep -oP '(\d+\.){2}\d+' $< | head -1 )
-	echo $${VERSION}
 	sed -i "s/LUA_LANGUAGE_SERVER=.*/LUA_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
-	cat .env
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah run $${CONTAINER} sh -c 'apk add bash build-base wget' &>/dev/null
 	# buildah run $${CONTAINER} sh -c 'apk add build-base glibc wget'
@@ -67,7 +65,7 @@ lua-language-server: latest/lua_language_server.txt
 	buildah config --entrypoint '/app/bin/lua-language-server' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/$(call Build,$@):v$${VERSION}
+	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
 
 
