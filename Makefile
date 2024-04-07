@@ -62,6 +62,8 @@ lua-language-server: latest/lua_language_server.txt
 	buildah run $${CONTAINER} sh -c 'mkdir -p /app'
 	cat $< | buildah run $${CONTAINER} sh -c 'cat - | wget -q -O- -i- | tar xvz -C /app' &>/dev/null
 	buildah run $${CONTAINER} sh -c '/app/bin/lua-language-server --version'
+	buildah run $${CONTAINER} sh -c 'objdump -p /app/bin/lua-language-server' || true
+	buildah run $${CONTAINER} sh -c 'ls -al /lib' || true
 	buildah config --entrypoint  '["/app/bin/lua-language-server"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
