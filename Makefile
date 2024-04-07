@@ -57,7 +57,7 @@ lua-language-server: latest/lua_language_server.txt
 	VERSION=$$(grep -oP '(\d+\.){2}\d+' $< | head -1 )
 	sed -i "s/LUA_LANGUAGE_SERVER=.*/LUA_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	buildah run $${CONTAINER} sh -c 'apk add wget glibc gcc' &>/dev/null
+	buildah run $${CONTAINER} sh -c 'apk add wget libgcc' &>/dev/null
 	# buildah run $${CONTAINER} sh -c 'apk add build-base glibc wget'
 	buildah run $${CONTAINER} sh -c 'mkdir -p /app'
 	cat $< | buildah run $${CONTAINER} sh -c 'cat - | wget -q -O- -i- | tar xvz -C /app' &>/dev/null
@@ -72,17 +72,21 @@ ifdef GITHUB_ACTIONS
 endif
 
 check:
-	podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'objdump -p /app/bin/lua-language-server | grep NEEDED'
+	# podman pull ghcr.io/grantmacken/lua-language-server
+	podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'objdump -p /app/bin/lua-language-server | grep NEEDED'
 	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'objdump -p /bin/bash | grep NEEDED'
 	#podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'readelf -d /app/bin/lua-language-server | grep NEEDED'
-	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libm.so.6'
-	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libdl.so.2'
-	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libgcc_s.so.1'
+	# podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libm.so.6'
+	# podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libdl.so.2'
+	# podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /usr/lib'
 	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libpthread.so.0'
 	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libc.so.6'
 	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep ld-linux-x86-64.so.2'
 	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' cgr.dev/chainguard/glibc-dynamic:latest-dev 'ls /lib'
+	echo '-----------------'
 	podman run -it --rm --entrypoint '["/bin/ash", "-c"]' cgr.dev/chainguard/wolfi-base 'ls /lib'
+	echo '-----------------'
+	podman run -it --rm --entrypoint '["/bin/ash", "-c"]' cgr.dev/chainguard/wolfi-base 'ls /usr/lib'
 
 
 
