@@ -1,5 +1,7 @@
 name: podx builds
 on:
+  schedule:
+    - cron: '0 5 * * *'  # 6am and 6pm every day  
   push:
     branches:
     - main
@@ -9,6 +11,7 @@ on:
     - '**/latest'
 jobs:
   build:
+    name: build and push images
     runs-on: ubuntu-latest
     permissions:
       contents: read
