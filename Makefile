@@ -66,7 +66,7 @@ lua-language-server: latest/lua_language_server.txt
 	# buildah run $${CONTAINER} sh -c 'ls -al /lib' || true
 	buildah commit --rm $${CONTAINER} bldr
 	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic:latest)
-	buildah add --from localhost/bldr $${CONTAINER} '/app' '/app'
+	buildah add --chmod 755 --chown nonroot:nonroot --from localhost/bldr $${CONTAINER} '/app' '/app'
 	buildah config --entrypoint  '["/app/bin/lua-language-server"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 	podman images
@@ -74,9 +74,13 @@ ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
 
+pull:
+	podman pull ghcr.io/grantmacken/lua-language-server
+
+
 check:
 	# podman pull ghcr.io/grantmacken/lua-language-server
-	podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'objdump -p /app/bin/lua-language-server | grep NEEDED'
+	podman run -it --rm ghcr.io/grantmacken/lua-language-server
 	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'objdump -p /bin/bash | grep NEEDED'
 	#podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'readelf -d /app/bin/lua-language-server | grep NEEDED'
 	# podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libm.so.6'
