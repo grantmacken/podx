@@ -62,10 +62,11 @@ lua-language-server: latest/lua_language_server.txt
 	buildah run $${CONTAINER} sh -c 'mkdir -p /app'
 	cat $< | buildah run $${CONTAINER} sh -c 'cat - | wget -q -O- -i- | tar xvz -C /app' &>/dev/null
 	buildah run $${CONTAINER} sh -c '/app/bin/lua-language-server --version'
-	buildah run $${CONTAINER} sh -c 'objdump -p /app/bin/lua-language-server' || true
+	buildah run $${CONTAINER} sh -c 'objdump -p /app/bin/lua-language-server | grep NEEDED' || true
 	buildah run $${CONTAINER} sh -c 'ls -al /lib' || true
 	buildah config --entrypoint  '["/app/bin/lua-language-server"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+	podman images
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
@@ -82,10 +83,7 @@ check:
 	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep ld-linux-x86-64.so.2'
 	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' cgr.dev/chainguard/glibc-dynamic:latest-dev 'ls /lib'
 	podman run -it --rm --entrypoint '["/bin/ash", "-c"]' cgr.dev/chainguard/wolfi-base 'ls /lib'
-	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	buildah run $${CONTAINER} sh -c 'apk add gcc'
-	buildah run $${CONTAINER} sh -c 'ls /lib'
-	buildah commit --rm $${CONTAINER} $@
+
 
 
 
