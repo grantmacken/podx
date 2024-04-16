@@ -75,15 +75,15 @@ bash-language-server: shellcheck bldr-node
 	buildah add --chown root:root --from localhost/bldr-node $${CONTAINER} '/app' '/'
 	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
 	buildah run $${CONTAINER} sh -c 'which bash-language-server'
-	buildah run $${CONTAINER} sh -c 'bash-language-server --version'
+	buildah config --entrypoint  '["/usr/local/bin/bash-language-server"]' $${CONTAINER}
+	VERSION=$$(buildah run $${CONTAINER} sh -c 'bash-language-server --version' | podman  grep -oP '(\d+\.){2}\d+' | head -1 )
+	sed -i "s/BASH_LANGUAGE_SERVER=.*/BASH_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 	podman images
 	podman inspect ghcr.io/$(REPO_OWNER)/$@
-
-
-
-
-
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$@
+endif
 
 
 check:
