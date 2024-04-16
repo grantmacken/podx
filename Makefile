@@ -67,6 +67,10 @@ bldr-node:
 
 bash-language-server: shellcheck bldr-node
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah config \
+	--label io.containers.autoupdate='registry' \
+	--label summary='a Wolfi based bash-language-server' \
+	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'apk add nodejs-21 && mkdir -p /usr/local/bin'
 	buildah run $${CONTAINER} sh -c 'whoami'
 	buildah add --chmod 755 --from localhost/shellcheck $${CONTAINER} '/shellcheck-stable/shellcheck' '/usr/local/bin/shellcheck'
