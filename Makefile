@@ -30,6 +30,9 @@ versions:
 	echo " - wolfi version: $$VERSION"
 
 
+
+
+
 xxxx: 
 	podman pull docker.io/openresty/openresty:alpine-apk
 	VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
@@ -46,6 +49,53 @@ build: lua-language-server
 clean:
 	rm latest/lua_language_server.txt || true
 
+
+shellcheck:
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah run $${CONTAINER} sh -c 'apk add wget && mkdir -p /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'wget -q -O- https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz | \
+	tar xJv -C /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'ls -al /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'which shellcheck'
+	buildah run $${CONTAINER} sh -c 'shellcheck --version'
+	buildah commit --rm $${CONTAINER} $@
+
+bldr-node:
+	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
+	buildah config --workingdir  '/app' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'npm i bash-language-server'
+	buildah run $${CONTAINER} sh -c 'ls -al .'
+	buildah commit --rm $${CONTAINER} $@
+
+bash-language-server: shellcheck bldr-node
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-21 && mkdir -p /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'whoami'
+	buildah add --chmod 755 --from localhost/shellcheck $${CONTAINER} '/usr/local/bin/shellcheck-stable/shellcheck' '/usr/local/bin/shellcheck'
+	buildah run $${CONTAINER} sh -c 'which shellcheck'
+	buildah add --chown root:root --from localhost/node $${CONTAINER} '/app' '/'
+	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
+	buildah run $${CONTAINER} sh -c 'which bash-language-server'
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+	podman images
+	podman inspect ghcr.io/$(REPO_OWNER)/$@
+
+
+
+
+
+
+
+check:
+	# podman images
+	# podman inspect localhost/bldr-node
+	podman run --rm --entrypoint '["/bin/sh", "-c"] ' localhost/bldr-node 'ls -al node_modules/.bin'
+	podman run --rm --entrypoint '["/bin/sh", "-c"] ' localhost/bldr-node 'printenv'
+	podman run --rm --entrypoint '["/bin/sh", "-c"] ' localhost/shellcheck 'ls -al /usr/local/bin/shellcheck-stable'
+	echo '-----------------'
+
+
+
 latest/lua_language_server.txt:
 	mkdir -p $(dir $@)
 	wget -q -O - 'https://api.github.com/repos/LuaLS/lua-language-server/releases/latest' |
@@ -54,6 +104,8 @@ latest/lua_language_server.txt:
 
 lua-language-server: latest/lua_language_server.txt
 	echo '##[ $@ ]##'
+	# 'objdump -p /app/bin/lua-language-server | grep NEEDED'
+	# https://edu.chainguard.dev/chainguard/chainguard-images/reference/glibc-dynamic/image_specs/
 	VERSION=$$(grep -oP '(\d+\.){2}\d+' $< | head -1 )
 	sed -i "s/LUA_LANGUAGE_SERVER=.*/LUA_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
@@ -70,30 +122,20 @@ lua-language-server: latest/lua_language_server.txt
 	buildah config --entrypoint  '["/app/bin/lua-language-server"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 	podman images
+	podman inspect ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
+
+
+
+
 
 pull:
 	podman pull ghcr.io/grantmacken/lua-language-server
 
 
-check:
-	# podman pull ghcr.io/grantmacken/lua-language-server
-	podman run -it --rm ghcr.io/grantmacken/lua-language-server
-	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'objdump -p /bin/bash | grep NEEDED'
-	#podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'readelf -d /app/bin/lua-language-server | grep NEEDED'
-	# podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libm.so.6'
-	# podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libdl.so.2'
-	# podman run -it --rm --entrypoint '["/bin/ash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /usr/lib'
-	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libpthread.so.0'
-	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep libc.so.6'
-	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' ghcr.io/grantmacken/lua-language-server 'ls /lib | grep ld-linux-x86-64.so.2'
-	# podman run -it --rm --entrypoint '["/bin/bash", "-c"]' cgr.dev/chainguard/glibc-dynamic:latest-dev 'ls /lib'
-	echo '-----------------'
-	podman run -it --rm --entrypoint '["/bin/ash", "-c"]' cgr.dev/chainguard/wolfi-base 'ls /lib'
-	echo '-----------------'
-	podman run -it --rm --entrypoint '["/bin/ash", "-c"]' cgr.dev/chainguard/wolfi-base 'ls /usr/lib'
+
 
 
 
