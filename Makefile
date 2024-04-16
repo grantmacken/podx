@@ -52,12 +52,10 @@ clean:
 
 shellcheck:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	buildah run $${CONTAINER} sh -c 'apk add wget && mkdir -p /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'apk add wget'
 	buildah run $${CONTAINER} sh -c 'wget -q -O- https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz | \
-	tar xJv -C /usr/local/bin'
-	buildah run $${CONTAINER} sh -c 'ls -al /usr/local/bin'
-	buildah run $${CONTAINER} sh -c 'which shellcheck'
-	buildah run $${CONTAINER} sh -c 'shellcheck --version'
+	tar xJv'
+	buildah run $${CONTAINER} sh -c 'ls -al /'
 	buildah commit --rm $${CONTAINER} $@
 
 bldr-node:
@@ -71,7 +69,7 @@ bash-language-server: shellcheck bldr-node
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah run $${CONTAINER} sh -c 'apk add nodejs-21 && mkdir -p /usr/local/bin'
 	buildah run $${CONTAINER} sh -c 'whoami'
-	buildah add --chmod 755 --from localhost/shellcheck $${CONTAINER} '/usr/local/bin/shellcheck-stable/shellcheck' '/usr/local/bin/shellcheck'
+	buildah add --chmod 755 --from localhost/shellcheck $${CONTAINER} '/shellcheck-stable/shellcheck' '/usr/local/bin/shellcheck'
 	buildah run $${CONTAINER} sh -c 'which shellcheck'
 	buildah add --chown root:root --from localhost/node $${CONTAINER} '/app' '/'
 	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
