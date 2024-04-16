@@ -71,9 +71,11 @@ bash-language-server: shellcheck bldr-node
 	buildah run $${CONTAINER} sh -c 'whoami'
 	buildah add --chmod 755 --from localhost/shellcheck $${CONTAINER} '/shellcheck-stable/shellcheck' '/usr/local/bin/shellcheck'
 	buildah run $${CONTAINER} sh -c 'which shellcheck'
-	buildah add --chown root:root --from localhost/node $${CONTAINER} '/app' '/'
+	buildah run $${CONTAINER} sh -c 'shellcheck --version'
+	buildah add --chown root:root --from localhost/bldr-node $${CONTAINER} '/app' '/'
 	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
 	buildah run $${CONTAINER} sh -c 'which bash-language-server'
+	buildah run $${CONTAINER} sh -c 'bash-language-server --version'
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 	podman images
 	podman inspect ghcr.io/$(REPO_OWNER)/$@
