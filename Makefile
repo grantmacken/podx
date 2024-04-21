@@ -68,7 +68,6 @@ bldr-node:
 bash-language-server: shellcheck bldr-node
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah config \
-	--label io.containers.autoupdate='registry' \
 	--label summary='a Wolfi based bash-language-server' \
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'apk add nodejs-21 && mkdir -p /usr/local/bin'
@@ -79,7 +78,7 @@ bash-language-server: shellcheck bldr-node
 	buildah add --chown root:root --from localhost/bldr-node $${CONTAINER} '/app' '/'
 	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
 	buildah run $${CONTAINER} sh -c 'which bash-language-server'
-	buildah config --entrypoint  '["/usr/local/bin/bash-language-server"]' $${CONTAINER}
+	buildah config --entrypoint  '["bash-language-server", "start"]' $${CONTAINER}
 	VERSION=$$(buildah run $${CONTAINER} sh -c 'bash-language-server --version' | grep -oP '(\d+\.){2}\d+' | head -1 )
 	sed -i "s/BASH_LANGUAGE_SERVER=.*/BASH_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
