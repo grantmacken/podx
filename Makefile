@@ -58,24 +58,25 @@ shellcheck:
 	buildah run $${CONTAINER} sh -c 'ls -al /'
 	buildah commit --rm $${CONTAINER} $@
 
-bldr-node:
+bldr-bashls:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'npm i bash-language-server'
 	buildah run $${CONTAINER} sh -c 'ls -al .'
 	buildah commit --rm $${CONTAINER} $@
 
-bash-language-server: shellcheck bldr-node
+
+bash-language-server: shellcheck bldr-bashls
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah config \
 	--label summary='a Wolfi based bash-language-server' \
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'apk add bash nodejs-18 && mkdir -p /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-18 && mkdir -p /usr/local/bin'
 	buildah run $${CONTAINER} sh -c 'whoami'
 	buildah add --chmod 755 --from localhost/shellcheck $${CONTAINER} '/shellcheck-stable/shellcheck' '/usr/local/bin/shellcheck'
 	buildah run $${CONTAINER} sh -c 'which shellcheck'
 	buildah run $${CONTAINER} sh -c 'shellcheck --version'
-	buildah add --chown root:root --from localhost/bldr-node $${CONTAINER} '/app' '/'
+	buildah add --chown root:root --from localhost/bldr-bashls $${CONTAINER} '/app' '/'
 	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
 	buildah run $${CONTAINER} sh -c 'which bash-language-server'
 	buildah config --entrypoint  '["bash-language-server", "start"]' $${CONTAINER}
@@ -87,6 +88,38 @@ bash-language-server: shellcheck bldr-node
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
+
+bldr-yamlls:
+	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
+	buildah config --workingdir  '/app' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'npm i yaml-language-server'
+	buildah run $${CONTAINER} sh -c 'ls -al .'
+	buildah commit --rm $${CONTAINER} $@
+
+yaml-language-server: bldr-yamlls
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah config \
+	--label summary='a Wolfi based yaml-language-server' \
+	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-18 && mkdir -p /usr/local/bin'
+	buildah add --chown root:root --from localhost/bldr-yamls $${CONTAINER} '/app' '/'
+	buildah run $${CONTAINER} sh -c 'ls -alR /node_modules/yaml-language-server'
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+
+xxx:
+	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
+	buildah run $${CONTAINER} sh -c 'which bash-language-server'
+	buildah config --entrypoint  '["bash-language-server", "start"]' $${CONTAINER}
+	VERSION=$$(buildah run $${CONTAINER} sh -c 'bash-language-server --version' | grep -oP '(\d+\.){2}\d+' | head -1 )
+	sed -i "s/BASH_LANGUAGE_SERVER=.*/BASH_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+	podman images
+	podman inspect ghcr.io/$(REPO_OWNER)/$@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$@
+endif
+
+
 
 
 check:
