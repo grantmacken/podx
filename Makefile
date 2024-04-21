@@ -89,11 +89,20 @@ ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
 
+bldr-vscodels-extracted:
+	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
+	buildah config --workingdir  '/app' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted'
+	buildah run $${CONTAINER} sh -c 'ls -al .'
+	buildah commit --rm $${CONTAINER} $@
+
+
+
 bldr-yamlls:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'npm i yaml-language-server'
-	buildah run $${CONTAINER} sh -c 'ls -al .'
+	buildah run $${CONTAINER} sh -c 'ls -al node_modules/'
 	buildah commit --rm $${CONTAINER} $@
 
 yaml-language-server: bldr-yamlls
@@ -101,14 +110,18 @@ yaml-language-server: bldr-yamlls
 	buildah config \
 	--label summary='a Wolfi based yaml-language-server' \
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'apk add nodejs-18 && mkdir -p /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-21 && mkdir -p /usr/local/bin'
 	buildah add --chown root:root --from localhost/bldr-yamlls $${CONTAINER} '/app' '/'
-	buildah run $${CONTAINER} sh -c 'ls -alR /node_modules/yaml-language-server'
+	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/yaml-language-server/bin/yaml-language-server /usr/local/bin/yaml-language-server'
+	buildah run $${CONTAINER} sh -c 'which yaml-language-server'
+	VERSION=$$(buildah run $${CONTAINER} sh -c 'yaml-language-server --version' | grep -oP '(\d+\.){2}\d+' | head -1 )
+	sed -i "s/YAML_LANGUAGE_SERVER=.*/YAML_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
+	cat .env
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+	podman images
 
 xxx:
 	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
-	buildah run $${CONTAINER} sh -c 'which bash-language-server'
 	buildah config --entrypoint  '["bash-language-server", "start"]' $${CONTAINER}
 	VERSION=$$(buildah run $${CONTAINER} sh -c 'bash-language-server --version' | grep -oP '(\d+\.){2}\d+' | head -1 )
 	sed -i "s/BASH_LANGUAGE_SERVER=.*/BASH_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
