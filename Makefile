@@ -94,7 +94,6 @@ endif
 # vscode-html-language-server -> ../vscode-langservers-extracted/bin/vscode-html-language-server
 # vscode-json-language-server -> ../vscode-langservers-extracted/bin/vscode-json-language-server
 # vscode-markdown-language-server -> ../vscode-langservers-extracted/bin/vscode-markdown-language-server
-
 vscode-langservers-extracted:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app/' $${CONTAINER}
@@ -102,6 +101,7 @@ vscode-langservers-extracted:
 	buildah run $${CONTAINER} sh -c 'ls -alR node_modules/vscode-langservers-extracted/bin'
 	echo '---------------------------------------------------------------------------'
 	buildah run $${CONTAINER} sh -c 'ls -alR node_modules/vscode-langservers-extracted/'
+	# buildah run $${CONTAINER} sh -c 'ls -alR node_modules/co/'
 	echo '---------------------------------------------------------------------------'
 	buildah commit --rm $${CONTAINER} $@
 
@@ -122,6 +122,9 @@ yaml-language-server: bldr-yamlls
 	buildah config --workingdir  '/node_modules/yaml-language-server' $${CONTAINER}
 	buildah config --entrypoint  '["./bin/yaml-language-server", "--stdio"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$@
+endif
 	podman images
 
 xxx:

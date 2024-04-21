@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           # make bash-language-server
-          # make yaml-language-server
+          make yaml-language-server
           make vscode-langservers-extracted
           # make versions
           # # make build-w3m
