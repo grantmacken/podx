@@ -70,7 +70,7 @@ bash-language-server: shellcheck bldr-node
 	buildah config \
 	--label summary='a Wolfi based bash-language-server' \
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'apk add nodejs-21 && mkdir -p /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'apk add bash nodejs-18 && mkdir -p /usr/local/bin'
 	buildah run $${CONTAINER} sh -c 'whoami'
 	buildah add --chmod 755 --from localhost/shellcheck $${CONTAINER} '/shellcheck-stable/shellcheck' '/usr/local/bin/shellcheck'
 	buildah run $${CONTAINER} sh -c 'which shellcheck'
