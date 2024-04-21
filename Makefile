@@ -102,7 +102,7 @@ yaml-language-server: bldr-yamlls
 	--label summary='a Wolfi based yaml-language-server' \
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'apk add nodejs-18 && mkdir -p /usr/local/bin'
-	buildah add --chown root:root --from localhost/bldr-yamls $${CONTAINER} '/app' '/'
+	buildah add --chown root:root --from localhost/bldr-yamlls $${CONTAINER} '/app' '/'
 	buildah run $${CONTAINER} sh -c 'ls -alR /node_modules/yaml-language-server'
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 
