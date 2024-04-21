@@ -105,8 +105,6 @@ vscode-langservers-extracted:
 	echo '---------------------------------------------------------------------------'
 	buildah commit --rm $${CONTAINER} $@
 
-
-
 bldr-yamlls:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
@@ -121,10 +119,8 @@ yaml-language-server: bldr-yamlls
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'apk add nodejs-21'
 	buildah add --chown root:root --from localhost/bldr-yamlls $${CONTAINER} '/app' '/'
-	buildah run $${CONTAINER} sh -c '/node_modules/yaml-language-server/bin/yaml-language-server --version'
-	# VERSION=$$(buildah run $${CONTAINER} sh -c 'yaml-language-server --version' | grep -oP '(\d+\.){2}\d+' | head -1 )
-	# sed -i "s/YAML_LANGUAGE_SERVER=.*/YAML_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
-	cat .env
+	buildah config --workingdir  '/node_modules/yaml-language-server' $${CONTAINER}
+	buildah config --entrypoint  '["./bin/yaml-language-server", "--stdio"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 	podman images
 
