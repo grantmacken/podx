@@ -93,7 +93,7 @@ bldr-vscodels-extracted:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted'
-	buildah run $${CONTAINER} sh -c 'ls -al .'
+	buildah run $${CONTAINER} sh -c 'ls -alR node_modules'
 	buildah commit --rm $${CONTAINER} $@
 
 
