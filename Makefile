@@ -96,8 +96,6 @@ bldr-vscodels-extracted:
 	buildah run $${CONTAINER} sh -c 'ls -alR node_modules'
 	buildah commit --rm $${CONTAINER} $@
 
-
-
 bldr-yamlls:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
@@ -110,12 +108,11 @@ yaml-language-server: bldr-yamlls
 	buildah config \
 	--label summary='a Wolfi based yaml-language-server' \
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'apk add nodejs-21 && mkdir -p /usr/local/bin'
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-21'
 	buildah add --chown root:root --from localhost/bldr-yamlls $${CONTAINER} '/app' '/'
-	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/yaml-language-server/bin/yaml-language-server /usr/local/bin/yaml-language-server'
-	buildah run $${CONTAINER} sh -c 'which yaml-language-server'
-	VERSION=$$(buildah run $${CONTAINER} sh -c 'yaml-language-server --version' | grep -oP '(\d+\.){2}\d+' | head -1 )
-	sed -i "s/YAML_LANGUAGE_SERVER=.*/YAML_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
+	buildah run $${CONTAINER} sh -c '/app/node_modules/yaml-language-server/bin/yaml-language-server --version'
+	# VERSION=$$(buildah run $${CONTAINER} sh -c 'yaml-language-server --version' | grep -oP '(\d+\.){2}\d+' | head -1 )
+	# sed -i "s/YAML_LANGUAGE_SERVER=.*/YAML_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
 	cat .env
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 	podman images
