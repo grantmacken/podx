@@ -1,7 +1,7 @@
 name: podx builds
 on:
   schedule:
-    - cron: '0 5 * * *'  # 6am and 6pm every day  
+    - cron: '0 5 * * *'  # 6am and 6pm every day
   push:
     branches:
     - main
@@ -27,8 +27,8 @@ jobs:
       - name: build images
         shell: bash
         run: |
-          make bash-language-server
-          make yaml-language-server
+          #make bash-language-server
+          #make yaml-language-server
           make vscode-langservers-extracted
           # make versions
           # # make build-w3m

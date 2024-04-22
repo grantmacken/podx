@@ -92,13 +92,26 @@ endif
 # vscode-json-language-server -> ../vscode-langservers-extracted/bin/vscode-json-language-server
 # vscode-markdown-language-server -> ../vscode-langservers-extracted/bin/vscode-markdown-language-server
 # @NOTE: keep everything as is? leave npm intact?
-vscode-langservers-extracted:
+bldr-vle:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted'
+	buildah commit --rm $${CONTAINER} $@
+
+vscode-langservers-extracted: bldr-vle
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+	buildah config \
+	--label summary='a Wolfi based $@ css-language-server' \
+	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-21'
+	buildah add --chown root:root --from localhost/bldr-vle $${CONTAINER} '/app' '/'
+	buildah run $${CONTAINER} sh -c 'ls -alR /node_modules/$@'
+	buildah config --workingdir  '/node_modules/$@' $${CONTAINER}
+	buildah config --entrypoint  '["./bin/$@/vscode-css-language-server", "--stdio"]' $${CONTAINER}
+	buildah commit $${CONTAINER} ghcr.io/$(REPO_OWNER)/css-language-server
+	podman images | grep
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/$@
+	buildah push ghcr.io/$(REPO_OWNER)/css-language-server
 endif
 
 bldr-yamlls:
