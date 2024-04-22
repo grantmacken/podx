@@ -7,6 +7,7 @@ MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --silent
 
 include .env
+MAINTANER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
 .PHONY: help
 help: ## show this help
@@ -99,17 +100,17 @@ bldr-vle:
 	buildah commit --rm $${CONTAINER} $@
 
 vscode-langservers-extracted: bldr-vle
-	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah config \
 	--label summary='a Wolfi based $@ css-language-server' \
-	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
+	--label maintainer=$(MAINTANER) $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'apk add nodejs-21'
 	buildah add --chown root:root --from localhost/bldr-vle $${CONTAINER} '/app' '/'
 	buildah run $${CONTAINER} sh -c 'ls -alR /node_modules/$@'
 	buildah config --workingdir  '/node_modules/$@' $${CONTAINER}
 	buildah config --entrypoint  '["./bin/$@/vscode-css-language-server", "--stdio"]' $${CONTAINER}
 	buildah commit $${CONTAINER} ghcr.io/$(REPO_OWNER)/css-language-server
-	podman images | grep
+	podman images | grep ghcr.io/$(REPO_OWNER)/css-language-server
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/css-language-server
 endif
