@@ -30,10 +30,7 @@ versions:
 	echo " - wolfi version: $$VERSION"
 
 
-
-
-
-xxxx: 
+xxxx:
 	podman pull docker.io/openresty/openresty:alpine-apk
 	VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
 	sed -i "s/OPENRESTY_VER=.*/OPENRESTY_VER=v$${VERSION}/" .env
@@ -99,11 +96,10 @@ vscode-langservers-extracted:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted'
-	buildah commit --rm ghcr.io/$(REPO_OWNER)/$@
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
-
 
 bldr-yamlls:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
