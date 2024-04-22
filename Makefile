@@ -96,19 +96,18 @@ endif
 bldr-vle:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted'
+	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted' &>/dev/null
 	buildah commit --rm $${CONTAINER} $@
 
 vscode-langservers-extracted: bldr-vle
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah config \
-	--label summary='a Wolfi based $@ css-language-server' \
+	--label summary='a Wolfi based $@' \
 	--label maintainer=$(MAINTANER) $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'apk add nodejs-21'
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-21' &>/dev/null
 	buildah add --chown root:root --from localhost/bldr-vle $${CONTAINER} '/app' '/'
-	buildah run $${CONTAINER} sh -c 'ls -alR /node_modules/$@'
 	buildah config --workingdir  '/node_modules/$@' $${CONTAINER}
-	buildah config --entrypoint  '["./bin/$@/vscode-css-language-server", "--stdio"]' $${CONTAINER}
+	buildah config --entrypoint  '["./bin/vscode-css-language-server", "--stdio"]' $${CONTAINER}
 	buildah commit $${CONTAINER} ghcr.io/$(REPO_OWNER)/css-language-server
 	podman images | grep ghcr.io/$(REPO_OWNER)/css-language-server
 ifdef GITHUB_ACTIONS
