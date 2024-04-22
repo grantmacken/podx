@@ -99,7 +99,7 @@ vscode-langservers-extracted:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
 	buildah config --workingdir  '/app' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted'
-	buildah commit --rm $${CONTAINER} $@
+	buildah commit --rm ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
