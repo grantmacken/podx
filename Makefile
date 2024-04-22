@@ -94,16 +94,16 @@ endif
 # vscode-html-language-server -> ../vscode-langservers-extracted/bin/vscode-html-language-server
 # vscode-json-language-server -> ../vscode-langservers-extracted/bin/vscode-json-language-server
 # vscode-markdown-language-server -> ../vscode-langservers-extracted/bin/vscode-markdown-language-server
+# @NOTE: keep everything as is? leave npm intact?
 vscode-langservers-extracted:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
-	buildah config --workingdir  '/app/' $${CONTAINER}
+	buildah config --workingdir  '/app' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted'
-	buildah run $${CONTAINER} sh -c 'ls -alR node_modules/vscode-langservers-extracted/bin'
-	echo '---------------------------------------------------------------------------'
-	buildah run $${CONTAINER} sh -c 'ls -alR node_modules/vscode-langservers-extracted/'
-	# buildah run $${CONTAINER} sh -c 'ls -alR node_modules/co/'
-	echo '---------------------------------------------------------------------------'
 	buildah commit --rm $${CONTAINER} $@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$@
+endif
+
 
 bldr-yamlls:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
