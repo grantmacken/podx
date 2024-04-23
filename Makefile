@@ -107,14 +107,13 @@ vscode-langservers-extracted: bldr-vle
 	buildah run $${CONTAINER} sh -c 'apk add nodejs-21' &>/dev/null
 	buildah add --chown root:root --from localhost/bldr-vle $${CONTAINER} '/app' '/'
 	buildah config --workingdir  '/node_modules/' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'ls -al node_modules/'
+	buildah run $${CONTAINER} sh -c 'ls -al .'
 	buildah run $${CONTAINER} sh -c 'which sh'
 	buildah config --entrypoint  '["sh", "-c"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/css-language-server
 endif
-
 
 bldr-yamlls:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
