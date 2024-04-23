@@ -106,24 +106,13 @@ vscode-langservers-extracted: bldr-vle
 	--label maintainer=$(MAINTANER) $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'apk add nodejs-21' &>/dev/null
 	buildah add --chown root:root --from localhost/bldr-vle $${CONTAINER} '/app' '/'
-	buildah config --workingdir  '/node_modules/$@' $${CONTAINER}
-	buildah config --entrypoint  '["./bin/vscode-css-language-server", "--stdio"]' $${CONTAINER}
-	buildah commit $${CONTAINER} ghcr.io/$(REPO_OWNER)/css-language-server
-	podman images | grep ghcr.io/$(REPO_OWNER)/css-language-server
-	buildah config --entrypoint  '["./bin/vscode-html-language-server", "--stdio"]' $${CONTAINER}
-	buildah commit $${CONTAINER} ghcr.io/$(REPO_OWNER)/html-language-server
-	buildah config --entrypoint  '["./bin/vscode-json-language-server", "--stdio"]' $${CONTAINER}
-	buildah commit $${CONTAINER} ghcr.io/$(REPO_OWNER)/json-language-server
-	buildah config --entrypoint  '["./bin/vscode-markdown-language-server", "--stdio"]' $${CONTAINER}
-	buildah commit $${CONTAINER} ghcr.io/$(REPO_OWNER)/markdown-language-server
-	buildah config --entrypoint  '["./bin/vscode-eslint-language-server", "--stdio"]' $${CONTAINER}
-	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/eslint-language-server
+	buildah config --workingdir  '/node_modules/' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'ls -al node_modules/'
+	buildah run $${CONTAINER} sh -c 'which sh'
+	buildah config --entrypoint  '["sh", "-c"]' $${CONTAINER}
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
-	echo '================================================='
 	buildah push ghcr.io/$(REPO_OWNER)/css-language-server
-	echo '================================================='
-	buildah push ghcr.io/$(REPO_OWNER)/html-language-server
-	echo '================================================='
 endif
 
 
