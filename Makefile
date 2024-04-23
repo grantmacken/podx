@@ -112,7 +112,7 @@ vscode-langservers-extracted: bldr-vle
 	buildah config --entrypoint  '["sh", "-c"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/css-language-server
+	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
 
 bldr-yamlls:
