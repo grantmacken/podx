@@ -83,8 +83,17 @@ bldr-gleam: latest/gleam.tarball_url
 	SRC=./gleam
 	TARG=/app
 	buildah add --chmod 755 $${CONTAINER} $${SRC} $${TARG}
-	buildah run cargo build --release $${CONTAINER}
+	buildah run $${CONTAINER} cargo build --release
+	buildah run $${CONTAINER} sh -c 'ls -al target/release'
 	buildah commit --rm $${CONTAINER} $@
+
+
+# gleam-lang:
+# 	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic)
+# 	SRC=./gleam
+# 	TARG=/app
+# 	buildah add --chown nonroot:nonroot --from localhost/bldr-gleam $${CONTAINER} '/app/target/release/${PACKAGE}' '/'
+	## CMD ["/usr/local/bin/${PACKAGE}"]
 
 
 
