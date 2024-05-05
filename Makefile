@@ -82,9 +82,10 @@ bldr-gleam: latest/gleam.tarball_url
 	# add gleam content to working dir
 	SRC=./gleam
 	TARG=/app
-	buildah add $${CONTAINER} $${SRC} $${TARG}
+	buildah add --chown root:root $${CONTAINER} $${SRC} $${TARG}
+	buildah run $${CONTAINER} sh -c 'ls .'
 	buildah run $${CONTAINER} cargo build --release
-	# buildah run $${CONTAINER} sh -c 'ls -al target/release'
+	buildah run $${CONTAINER} sh -c 'ls -alR .'
 	buildah commit --rm $${CONTAINER} $@
 
 
