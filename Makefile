@@ -72,7 +72,7 @@ latest/gleam: latest/gleam.tarball_url
 	cd $(dir $@)
 	URL=$(shell cat $<)
 	curl -L $${URL} | \
-	tar xzvf - --one-top-level="gleam" --strip-components 1
+	tar xzvf - --one-top-level="gleam" --strip-components 1 &> /dev/null
 
 bldr-gleam: latest/gleam.tarball_url
 	curl -L $(shell cat $<) | \
@@ -83,7 +83,7 @@ bldr-gleam: latest/gleam.tarball_url
 	SRC=./gleam
 	TARG=/app
 	buildah add --chmod 755 $${CONTAINER} $${SRC} $${TARG}
-	buildah run $${CONTAINER} sh -c 'ls -al .'
+	buildah run cargo build --release $${CONTAINER}
 	buildah commit --rm $${CONTAINER} $@
 
 
