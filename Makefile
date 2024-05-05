@@ -30,7 +30,6 @@ versions:
 	sed -i "s/WOLFI_VER=.*/WOLFI_VER=$${VERSION}/" .env
 	echo " - wolfi version: $$VERSION"
 
-
 xxxx:
 	podman pull docker.io/openresty/openresty:alpine-apk
 	VERSION="$$(podman run openresty/openresty:alpine-apk sh -c 'openresty -v' 2>&1 | tee | sed 's/.*openresty\///' )"
@@ -43,10 +42,53 @@ build: lua-language-server
 
 # build-alpine build-w3m build-curl build-cmark certs build-openresty
 
-
 clean:
 	rm latest/lua_language_server.txt || true
 
+###  Gleam
+
+bldr-rust: ## a ephemeral localhost container which builds rust executables
+	echo '##[ $@ ]##'
+	CONTAINER=$$(buildah from cgr.dev/chainguard/rust:latest)
+	buildah run $${CONTAINER} rustc --version
+	buildah run $${CONTAINER} cargo --version
+	# buildah run $${CONTAINER} cargo install cargo-binstall &>/dev/null
+	# only install stuff not in  wolfi apk registry
+	# buildah run $${CONTAINER} /home/nonroot/.cargo/bin/cargo-binstall --no-confirm --no-symlinks stylua silicon tree-sitter-cli &>/dev/null
+	# buildah run $${CONTAINER} rm /home/nonroot/.cargo/bin/cargo-binstall
+	buildah run $${CONTAINER} ls /home/nonroot/.cargo/bin/
+	buildah commit --rm $${CONTAINER} $@
+	echo '##[ ------------------------------- ]##'
+
+
+### section end Gleam
+
+latest/gleam.tarball_url:
+	mkdir -p $(dir $@)
+	wget -q -O - 'https://api.github.com/repos/gleam-lang/gleam/tags' | jq  -r '.[0].tarball_url' | tee $@
+
+latest/gleam: latest/gleam.tarball_url
+	mkdir -p $(dir $@)
+	cd $(dir $@)
+	URL=$(shell cat $<)
+	curl -L $${URL} | \
+	tar xzvf - --one-top-level="gleam" --strip-components 1
+
+bldr-gleam: latest/gleam.tarball_url
+	curl -L $(shell cat $<) | \
+	tar xzvf - --one-top-level="gleam" --strip-components 1
+	CONTAINER=$$(buildah from cgr.dev/chainguard/rust:latest)
+	buildah config --workingdir  '/app' $${CONTAINER}
+	# add gleam content to working dir
+	SRC=./gleam
+	TARG=/app
+	buildah add --chmod 755 $${CONTAINER} $${SRC} $${TARG}
+	buildah run $${CONTAINER} sh -c 'ls -al .'
+	buildah commit --rm $${CONTAINER} $@
+
+
+
+###  Bash Language Server
 
 shellcheck:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
@@ -62,7 +104,6 @@ bldr-bashls:
 	buildah run $${CONTAINER} sh -c 'npm i bash-language-server'
 	buildah run $${CONTAINER} sh -c 'ls -al .'
 	buildah commit --rm $${CONTAINER} $@
-
 
 bash-language-server: shellcheck bldr-bashls
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
@@ -87,6 +128,9 @@ ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
 
+### section end Bash-language-server
+
+
 # vscode-css-language-server -> ../vscode-langservers-extracted/bin/vscode-css-language-server
 # vscode-eslint-language-server -> ../vscode-langservers-extracted/bin/vscode-eslint-language-server
 # vscode-html-language-server -> ../vscode-langservers-extracted/bin/vscode-html-language-server
@@ -109,7 +153,7 @@ vscode-langservers-extracted: bldr-vle
 	buildah config --workingdir  '/node_modules/' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'ls -al .'
 	buildah run $${CONTAINER} sh -c 'which sh'
-	buildah config --entrypoint  '["sh", "-c"]' $${CONTAINER}
+	buildah config --entrypoint  '["/bin/sh", "-c"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@

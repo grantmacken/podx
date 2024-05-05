@@ -27,9 +27,10 @@ jobs:
       - name: build images
         shell: bash
         run: |
+          make bldr-gleam
           #make bash-language-server
           #make yaml-language-server
-          make vscode-langservers-extracted
+          # make vscode-langservers-extracted
           # make versions
           # # make build-w3m
           # make build-curl
