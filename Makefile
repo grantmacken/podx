@@ -76,15 +76,18 @@ latest/gleam: latest/gleam.tarball_url
 
 bldr-gleam: latest/gleam.tarball_url
 	curl -L $(shell cat $<) | \
-	tar xzvf - --one-top-level="gleam" --strip-components 1
+	tar xzvf - --one-top-level="gleam" --strip-components 1  &> /dev/null
 	CONTAINER=$$(buildah from cgr.dev/chainguard/rust:latest)
 	buildah config --workingdir  '/app' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'whoami'
+
+sdsdd:
 	# add gleam content to working dir
 	SRC=./gleam
 	TARG=/app
-	buildah add --chown root:root $${CONTAINER} $${SRC} $${TARG}
+	buildah add --chmod 755 --chown root:root $${CONTAINER} $${SRC} $${TARG}
 	buildah run $${CONTAINER} sh -c 'ls .'
-	buildah run $${CONTAINER} cargo build --release
+	buildah run $${CONTAINER} cargo build --release &>/dev/null
 	buildah run $${CONTAINER} sh -c 'ls -alR .'
 	buildah commit --rm $${CONTAINER} $@
 
