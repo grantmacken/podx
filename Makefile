@@ -45,23 +45,17 @@ build: lua-language-server
 clean:
 	rm latest/lua_language_server.txt || true
 
-###  Gleam
 
-bldr-rust: ## a ephemeral localhost container which builds rust executables
-	echo '##[ $@ ]##'
-	CONTAINER=$$(buildah from cgr.dev/chainguard/rust:latest)
-	buildah run $${CONTAINER} rustc --version
-	buildah run $${CONTAINER} cargo --version
-	# buildah run $${CONTAINER} cargo install cargo-binstall &>/dev/null
-	# only install stuff not in  wolfi apk registry
-	# buildah run $${CONTAINER} /home/nonroot/.cargo/bin/cargo-binstall --no-confirm --no-symlinks stylua silicon tree-sitter-cli &>/dev/null
-	# buildah run $${CONTAINER} rm /home/nonroot/.cargo/bin/cargo-binstall
-	buildah run $${CONTAINER} ls /home/nonroot/.cargo/bin/
-	buildah commit --rm $${CONTAINER} $@
-	echo '##[ ------------------------------- ]##'
+### Gleam
+
+latest/rebar3:
+	mkdir -p $(dir $@)
+	cd latest
+	URL=https://s3.amazonaws.com/rebar3/rebar3
+	curl -L --output rebar3 $${URL} 
 
 
-### section end Gleam
+
 latest/gleam.tarball_url:
 	mkdir -p $(dir $@)
 	wget -q -O - 'https://api.github.com/repos/gleam-lang/gleam/tags' | jq  -r '.[0].tarball_url' | tee $@
@@ -84,18 +78,12 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'whoami'
 	buildah run $${CONTAINER} sh -c 'apk add erlang-26 elixir-1.16'
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
-	buildah run $${CONTAINER} sh -c 'which gleam'
 	buildah run $${CONTAINER} sh -c 'gleam --version'
+	buildah run $${CONTAINER} sh -c 'gleam'
+	buildah run $${CONTAINER} sh -c 'curl -sL --output /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3'
+	buildah run $${CONTAINER} sh -c 'rebar3'
 	buildah config --entrypoint  '["gleam"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} $@
-
-
-xgleam: latest/gleam
-	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic)
-	buildah add --chmod 755 --chown nonroot:nonroot  $${CONTAINER} '$<' '/usr/local/bin/$(notdir $<)'
-
-	buildah commit --rm $${CONTAINER} $@
-	# podman run localhost/$@ 
 
 
 ###  Bash Language Server
