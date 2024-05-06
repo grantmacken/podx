@@ -98,11 +98,13 @@ sdsds:
 	buildah run $${CONTAINER} sh -c 'gleam'
 	buildah commit --rm $${CONTAINER} $@
 
-gleam-lang:
+gleam-lang: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic)
-	buildah add  --chmod 755 --chown nonroot:nonroot  './latest/gleam' '/usr/local/bin/gleam'
+	buildah add  --chmod 755 --chown nonroot:nonroot  '$<' '/usr/local/bin/$(notdir $<)'
 	buildah config --cmd  '["/usr/local/bin/gleam"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} $@
+	podman run localhost/$@
+
 
 ###  Bash Language Server
 
