@@ -76,14 +76,14 @@ latest/gleam.asset:
 latest/gleam: latest/gleam.asset
 	mkdir -p $(dir $@)
 	URL=$(shell cat $<)
-	curl -L $${URL} |
+	curl -Ls $${URL} |
 	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory $(dir $@)
 	ls -al $(dir $@)
 
 gleam: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah run $${CONTAINER} sh -c 'whoami'
-	# buildah add  --chmod 755 $${CONTAINER} '$<' '/usr/local/bin/$(notdir $<)'
+	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
 	# buildah config --cmd  '["/usr/local/bin/gleam"]' $${CONTAINER}
 	# URL=$(shell cat $<)
 	# echo  $(notdir $(shell cat $<) )
