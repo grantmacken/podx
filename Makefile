@@ -81,6 +81,12 @@ latest/gleam: latest/gleam.asset
 
 bldr-gleam: latest/gleam.asset
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	# buildah config --workingdir  '/usr/local' $${CONTAINER}
+	buildah add $${CONTAINER} $(shell cat $<) /tmp
+	buildah run $${CONTAINER} sh -c 'ls -al /tmp'
+
+
+xxx:
 	buildah run $${CONTAINER} apk add wget tar
 	buildah run $${CONTAINER} wget -q -O- $(shell cat $<) | \
 	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory /usr/local/bin/
@@ -89,27 +95,8 @@ bldr-gleam: latest/gleam.asset
 	buildah run $${CONTAINER} sh -c 'gleam'
 	buildah commit --rm $${CONTAINER} $@
 
-
-
-	curl -L $(shell cat $<) | \
-	tar xzvf - --one-top-level="gleam" --strip-components 1  &> /dev/null
-	CONTAINER=$$(buildah from cgr.dev/chainguard/rust:latest)
-	buildah config --workingdir  '/app' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'whoami'
-	buildah run $${CONTAINER} rustc --print target-list
-	SRC=./gleam
-	TARG=/app
-	buildah add --chmod 755 --chown nonroot:nonroot $${CONTAINER} $${SRC} $${TARG}
-	buildah run $${CONTAINER} cargo build --release
-	# buildah run $${CONTAINER} sh -c 'ls .'
-	# buildah run $${CONTAINER} sh -c 'ls -alR .'
-	buildah commit --rm $${CONTAINER} $@
-
 gleam-lang:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic)
-	PACKAGE=gleam
-	SRC=./gleam
-	TARG=/app
 	buildah add --chown nonroot:nonroot --from localhost/bldr-gleam $${CONTAINER} \
 	"/app/target/release/$${PACKAGE}" "/usr/local/bin/$${PACKAGE}"
 	## CMD ["/usr/local/bin/${PACKAGE}"]
