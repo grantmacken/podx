@@ -84,6 +84,9 @@ gleam: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah run $${CONTAINER} sh -c 'whoami'
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
+	buildah run $${CONTAINER} sh -c 'which gleam'
+	buildah run $${CONTAINER} sh -c 'gleam --version'
+	buildah config --entrypoint  '["gleam"]' $${CONTAINER}
 	# buildah config --cmd  '["/usr/local/bin/gleam"]' $${CONTAINER}
 	# URL=$(shell cat $<)
 	# echo  $(notdir $(shell cat $<) )
@@ -95,9 +98,7 @@ gleam: latest/gleam
 xgleam: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic)
 	buildah add --chmod 755 --chown nonroot:nonroot  $${CONTAINER} '$<' '/usr/local/bin/$(notdir $<)'
-	buildah run $${CONTAINER} sh -c 'which gleam'
-	buildah run $${CONTAINER} sh -c 'gleam --version'
-	buildah config --entrypoint  '["/usr/local/bin/gleam"]' $${CONTAINER}
+
 	buildah commit --rm $${CONTAINER} $@
 	# podman run localhost/$@ 
 
