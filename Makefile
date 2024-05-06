@@ -81,8 +81,14 @@ latest/gleam: latest/gleam.asset
 
 bldr-gleam: latest/gleam.asset
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	# buildah config --workingdir  '/usr/local' $${CONTAINER}
-	# buildah add $${CONTAINER} $(shell cat $<) /tmp
+	URL=
+	echo  $(notdir $(shell cat $<) )
+	buildah add $${CONTAINER} $(shell cat $<) /tmp
+	buildah run $${CONTAINER} sh -c 'ls -al /tmp'
+	buildah commit --rm $${CONTAINER} $@
+
+
+sdsds:
 	# buildah run $${CONTAINER} sh -c 'ls -al /tmp'
 	buildah run $${CONTAINER} sh -c 'apk add wget'
 	buildah run $${CONTAINER} sh 'wget -q -O- $(shell cat $<) | \
@@ -94,11 +100,9 @@ bldr-gleam: latest/gleam.asset
 
 gleam-lang:
 	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic)
-	buildah add --chown nonroot:nonroot --from localhost/bldr-gleam $${CONTAINER} \
-	"/app/target/release/$${PACKAGE}" "/usr/local/bin/$${PACKAGE}"
-	## CMD ["/usr/local/bin/${PACKAGE}"]
-
-
+	buildah add  --chmod 755 --chown nonroot:nonroot  './latest/gleam' '/usr/local/bin/gleam'
+	buildah config --cmd  '["/usr/local/bin/gleam"]' $${CONTAINER}
+	buildah commit --rm $${CONTAINER} $@
 
 ###  Bash Language Server
 
