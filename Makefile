@@ -84,10 +84,10 @@ bldr-gleam: latest/gleam.asset
 	# buildah config --workingdir  '/usr/local' $${CONTAINER}
 	# buildah add $${CONTAINER} $(shell cat $<) /tmp
 	# buildah run $${CONTAINER} sh -c 'ls -al /tmp'
-	buildah run $${CONTAINER} apk add wget tar
-	buildah run $${CONTAINER} wget -q -O- $(shell cat $<) | \
-	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory /usr/local/bin/
-	buildah run $${CONTAINER} ls -al /usr/local/bin/
+	buildah run $${CONTAINER} sh -c 'apk add wget'
+	buildah run $${CONTAINER} sh 'wget -q -O- $(shell cat $<) | \
+	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory /usr/local/bin/'
+	buildah run $${CONTAINER} sh -c 'ls -al /usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'which gleam'
 	buildah run $${CONTAINER} sh -c 'gleam'
 	buildah commit --rm $${CONTAINER} $@
