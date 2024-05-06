@@ -62,7 +62,6 @@ bldr-rust: ## a ephemeral localhost container which builds rust executables
 
 
 ### section end Gleam
-
 latest/gleam.tarball_url:
 	mkdir -p $(dir $@)
 	wget -q -O - 'https://api.github.com/repos/gleam-lang/gleam/tags' | jq  -r '.[0].tarball_url' | tee $@
@@ -83,15 +82,11 @@ latest/gleam: latest/gleam.asset
 gleam: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah run $${CONTAINER} sh -c 'whoami'
+	buildah run $${CONTAINER} sh -c 'apk add erlang-26 elixir-1.16'
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'which gleam'
 	buildah run $${CONTAINER} sh -c 'gleam --version'
 	buildah config --entrypoint  '["gleam"]' $${CONTAINER}
-	# buildah config --cmd  '["/usr/local/bin/gleam"]' $${CONTAINER}
-	# URL=$(shell cat $<)
-	# echo  $(notdir $(shell cat $<) )
-	# buildah add $${CONTAINER} $${URL} /tmp
-	# buildah run $${CONTAINER} sh -c 'ls -al /tmp'
 	buildah commit --rm $${CONTAINER} $@
 
 
