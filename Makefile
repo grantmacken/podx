@@ -82,11 +82,8 @@ latest/gleam: latest/gleam.asset
 bldr-gleam: latest/gleam.asset
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	# buildah config --workingdir  '/usr/local' $${CONTAINER}
-	buildah add $${CONTAINER} $(shell cat $<) /tmp
-	buildah run $${CONTAINER} sh -c 'ls -al /tmp'
-
-
-xxx:
+	# buildah add $${CONTAINER} $(shell cat $<) /tmp
+	# buildah run $${CONTAINER} sh -c 'ls -al /tmp'
 	buildah run $${CONTAINER} apk add wget tar
 	buildah run $${CONTAINER} wget -q -O- $(shell cat $<) | \
 	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory /usr/local/bin/
