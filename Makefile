@@ -79,31 +79,26 @@ latest/gleam: latest/gleam.asset
 	curl -L $${URL} | \
 	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory $(dir $@)
 
-bldr-gleam: latest/gleam.asset
+gleam: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	URL=
+	buildah run $${CONTAINER} sh -c 'whoami'
+	buildah add  --chmod 755 $${CONTAINER} '$<' '/usr/local/bin/$(notdir $<)'
+	buildah config --cmd  '["/usr/local/bin/gleam"]' $${CONTAINER}
+	URL=$(shell cat $<)
 	echo  $(notdir $(shell cat $<) )
-	buildah add $${CONTAINER} $(shell cat $<) /tmp
+	buildah add $${CONTAINER} $${URL} /tmp
 	buildah run $${CONTAINER} sh -c 'ls -al /tmp'
 	buildah commit --rm $${CONTAINER} $@
 
 
-sdsds:
-	# buildah run $${CONTAINER} sh -c 'ls -al /tmp'
-	buildah run $${CONTAINER} sh -c 'apk add wget'
-	buildah run $${CONTAINER} sh 'wget -q -O- $(shell cat $<) | \
-	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory /usr/local/bin/'
-	buildah run $${CONTAINER} sh -c 'ls -al /usr/local/bin/'
-	buildah run $${CONTAINER} sh -c 'which gleam'
-	buildah run $${CONTAINER} sh -c 'gleam'
-	buildah commit --rm $${CONTAINER} $@
-
-gleam-lang: latest/gleam
+xgleam: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic)
-	buildah add  --chmod 755 --chown nonroot:nonroot  $${CONTAINER} '$<' '/usr/local/bin/$(notdir $<)'
-	buildah config --cmd  '["/usr/local/bin/gleam"]' $${CONTAINER}
+	buildah add --chmod 755 --chown nonroot:nonroot  $${CONTAINER} '$<' '/usr/local/bin/$(notdir $<)'
+	buildah run $${CONTAINER} sh -c 'which gleam'
+	buildah run $${CONTAINER} sh -c 'gleam --version'
+	buildah config --entrypoint  '["/usr/local/bin/gleam"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} $@
-	podman run localhost/$@
+	# podman run localhost/$@ 
 
 
 ###  Bash Language Server

@@ -27,7 +27,7 @@ jobs:
       - name: build images
         shell: bash
         run: |
-          make gleam-lang
+          make gleam
           #make bash-language-server
           #make yaml-language-server
           # make vscode-langservers-extracted
