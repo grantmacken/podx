@@ -67,19 +67,36 @@ latest/gleam.tarball_url:
 	mkdir -p $(dir $@)
 	wget -q -O - 'https://api.github.com/repos/gleam-lang/gleam/tags' | jq  -r '.[0].tarball_url' | tee $@
 
-latest/gleam: latest/gleam.tarball_url
+latest/gleam.asset:
 	mkdir -p $(dir $@)
-	cd $(dir $@)
+	wget -q -O - 'https://api.github.com/repos/gleam-lang/gleam/releases/latest' |
+	jq  -r '.assets[].browser_download_url' |
+	grep -oP '.+x86_64-unknown-linux-musl.tar.gz$$' | tee $@
+
+latest/gleam: latest/gleam.asset
+	mkdir -p $(dir $@)
 	URL=$(shell cat $<)
 	curl -L $${URL} | \
-	tar xzvf - --one-top-level="gleam" --strip-components 1 &> /dev/null
+	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory $(dir $@)
 
-bldr-gleam: latest/gleam.tarball_url
+bldr-gleam: latest/gleam.asset
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah run $${CONTAINER} apk add wget tar
+	buildah run $${CONTAINER} wget -q -O- $(shell cat $<) | \
+	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory /usr/local/bin/
+	buildah run $${CONTAINER} ls -al /usr/local/bin/
+	buildah run $${CONTAINER} sh -c 'which gleam'
+	buildah run $${CONTAINER} sh -c 'gleam'
+	buildah commit --rm $${CONTAINER} $@
+
+
+
 	curl -L $(shell cat $<) | \
 	tar xzvf - --one-top-level="gleam" --strip-components 1  &> /dev/null
 	CONTAINER=$$(buildah from cgr.dev/chainguard/rust:latest)
 	buildah config --workingdir  '/app' $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'whoami'
+	buildah run $${CONTAINER} rustc --print target-list
 	SRC=./gleam
 	TARG=/app
 	buildah add --chmod 755 --chown nonroot:nonroot $${CONTAINER} $${SRC} $${TARG}
