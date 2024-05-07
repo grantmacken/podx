@@ -78,7 +78,7 @@ gleam: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
 	buildah config \
 	--label summary='Wolfi-os with $@' \
-	--label maintainer='$(MAINTAINER)' \
+	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>'  \
 	--env lang=C.UTF-8 $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'apk add erlang-26 elixir-1.16'
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
