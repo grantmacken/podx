@@ -71,6 +71,7 @@ latest/gleam: latest/gleam.asset
 	URL=$(shell cat $<)
 	curl -Ls $${URL} |
 	tar xzvf - --one-top-level="gleam" --strip-components 1 --directory $(dir $@)
+	wget -q -P $(dir $@) https://s3.amazonaws.com/rebar3/rebar3
 	ls -al $(dir $@)
 
 gleam: latest/gleam
@@ -78,10 +79,12 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'whoami'
 	buildah run $${CONTAINER} sh -c 'apk add erlang-26 elixir-1.16'
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
+	buildah add --chmod 755 --chown root:root $${CONTAINER} 'latest/gleam' '/usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'gleam --version'
 	buildah run $${CONTAINER} sh -c 'gleam'
-	buildah run $${CONTAINER} sh -c 'wget -q -O /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3'
 	buildah run $${CONTAINER} sh -c 'which rebar3'
+	buildah run $${CONTAINER} sh -c 'which elixir'
+	buildah run $${CONTAINER} sh -c 'which erlang'
 	buildah config --entrypoint  '["gleam"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} $@
 
