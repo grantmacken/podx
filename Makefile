@@ -7,7 +7,7 @@ MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --silent
 
 include .env
-MAINTANER := 'Grant MacKenzie <grantmacken@gmail.com>'
+MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
 .PHONY: help
 help: ## show this help
@@ -76,7 +76,10 @@ latest/gleam: latest/gleam.asset
 
 gleam: latest/gleam
 	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	buildah config --env lang=C.UTF-8 $${CONTAINER}
+	buildah config \
+	--label summary='Wolfi-os with $@' \
+	--label maintainer='$(MAINTAINER)' \
+	--env lang=C.UTF-8 $${CONTAINER}
 	buildah run $${CONTAINER} sh -c 'apk add erlang-26 elixir-1.16'
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
 	buildah add --chmod 755 --chown root:root $${CONTAINER} 'latest/rebar3' '/usr/local/bin/'
@@ -92,7 +95,10 @@ gleam: latest/gleam
 	buildah config --cmd '' $${CONTAINER}
 	buildah config --entrypoint '[ "gleam"]' $${CONTAINER}
 	# buildah config --cmd  '["/bin/sh", "-c" ]' $${CONTAINER}
-	buildah commit --rm $${CONTAINER} $@
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$@
+endif
 
 
 ###  Bash Language Server
