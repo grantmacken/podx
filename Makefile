@@ -79,7 +79,7 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'whoami'
 	buildah run $${CONTAINER} sh -c 'apk add erlang-26 elixir-1.16'
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
-	buildah add --chmod 755 --chown root:root $${CONTAINER} 'latest/gleam' '/usr/local/bin/'
+	buildah add --chmod 755 --chown root:root $${CONTAINER} 'latest/rebar3' '/usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'gleam --version'
 	buildah run $${CONTAINER} sh -c 'gleam'
 	buildah run $${CONTAINER} sh -c 'which rebar3'
