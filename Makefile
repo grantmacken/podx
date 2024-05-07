@@ -80,8 +80,8 @@ gleam: latest/gleam
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'gleam --version'
 	buildah run $${CONTAINER} sh -c 'gleam'
-	buildah run $${CONTAINER} sh -c 'curl -sL --output /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3'
-	buildah run $${CONTAINER} sh -c 'rebar3'
+	buildah run $${CONTAINER} sh -c 'wget -q -O /usr/local/bin/rebar3 https://s3.amazonaws.com/rebar3/rebar3'
+	buildah run $${CONTAINER} sh -c 'which rebar3'
 	buildah config --entrypoint  '["gleam"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} $@
 
