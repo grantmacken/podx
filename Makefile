@@ -83,9 +83,9 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'ls -al /usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'gleam --version' || true
 	buildah run $${CONTAINER} sh -c 'which rebar3' || true
-	buildah run $${CONTAINER} sh -c 'which elixir' || true
-	buildah run $${CONTAINER} sh -c 'which erlang' || true
-	buildah config --entrypoint  '["gleam"]' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'elixir --version' || true
+	buildah run $${CONTAINER} sh -c 'which erl' || true
+	buildah config --cmd  '["/bin/sh", "-c" ]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} $@
 
 
