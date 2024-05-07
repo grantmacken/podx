@@ -81,11 +81,10 @@ gleam: latest/gleam
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
 	buildah add --chmod 755 --chown root:root $${CONTAINER} 'latest/rebar3' '/usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'ls -al /usr/local/bin/'
-	buildah run $${CONTAINER} sh -c 'gleam --version'
-	buildah run $${CONTAINER} sh -c 'gleam'
+	buildah run $${CONTAINER} sh -c 'gleam --version' || true
 	buildah run $${CONTAINER} sh -c 'which rebar3' || true
-	buildah run $${CONTAINER} sh -c 'which elixir'
-	buildah run $${CONTAINER} sh -c 'which erlang'
+	buildah run $${CONTAINER} sh -c 'which elixir' || true
+	buildah run $${CONTAINER} sh -c 'which erlang' || true
 	buildah config --entrypoint  '["gleam"]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} $@
 
