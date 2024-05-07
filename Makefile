@@ -82,6 +82,8 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'ls -al /usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'gleam --version' || true
 	buildah run $${CONTAINER} sh -c 'which rebar3' || true
+	buildah run $${CONTAINER} sh -c 'rebar3 --version' || true
+	buildah run $${CONTAINER} sh -c 'rebar3 help' || true
 	buildah run $${CONTAINER} sh -c 'elixir --version' || true
 	buildah run $${CONTAINER} sh -c 'mix --version' || true
 	buildah run $${CONTAINER} sh -c 'which erl' || true
