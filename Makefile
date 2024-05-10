@@ -68,8 +68,8 @@ cosign: latest/cosign.name
 	buildah add --chmod 755 --from  gcr.io/projectsigstore/cosign:$${VERSION}  $${CONTAINER} /ko-app/cosign /usr/local/bin/cosign
 	buildah config --cmd '' $${CONTAINER}
 	buildah config --entrypoint '[ "cosign"]' $${CONTAINER}
-	buildah commit $${CONTAINER} ghcr.io/$(OWNER)/$(call Build,$@):$${VERSION}
-	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(OWNER)/$(call Build,$@):latest
+	buildah commit $${CONTAINER} ghcr.io/$(OWNER)/$@:$${VERSION}
+	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(OWNER)/$@:latest
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(OWNER)/$@:latest
 	buildah push ghcr.io/$(OWNER)/$@:$${VERSION}
