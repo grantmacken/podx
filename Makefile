@@ -56,7 +56,7 @@ clean:
 latest/cosign.name:
 	mkdir -p $(dir $@)
 	wget -q -O - 'https://api.github.com/repos/sigstore/cosign/releases/latest' | 
-	jq  -r '.name'
+	jq  -r '.name' | tee $@
 
 cosign: latest/cosign.name
 	CONTAINER=$$(buildah from cgr.dev/chainguard/static:latest)
@@ -71,8 +71,8 @@ cosign: latest/cosign.name
 	buildah commit $${CONTAINER} ghcr.io/$(OWNER)/$(call Build,$@):$${VERSION}
 	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(OWNER)/$(call Build,$@):latest
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(OWNER)/$(call Build,$@):latest
-	buildah push ghcr.io/$(OWNER)/$(call Build,$@)::$${VERSION}
+	buildah push ghcr.io/$(OWNER)/$@:latest
+	buildah push ghcr.io/$(OWNER)/$@:$${VERSION}
 endif
 
 ### Gleam
