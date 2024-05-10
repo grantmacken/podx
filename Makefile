@@ -5,12 +5,13 @@ SHELL := /bin/bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --silent
-
 include .env
 
 ifdef GITHUB_ACTIONS
-OWNER := $${{ github.repository_owner }}
+OWNER := $(shell echo $${{ github.repository_owner }})
 endif
+
+BIN := $(HOME)/.local/bin
 
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
@@ -51,11 +52,12 @@ clean:
 	rm latest/lua_language_server.txt || true
 
 
-## cosign
+## cosig
 
 latest/cosign.name:
 	mkdir -p $(dir $@)
-	wget -q -O - 'https://api.github.com/repos/sigstore/cosign/releases/latest' | 
+	echo -n ' - latest cosign release version: '
+	wget -q -O - 'https://api.github.com/repos/sigstore/cosign/releases/latest' |
 	jq  -r '.name' | tee $@
 
 cosign: latest/cosign.name
@@ -74,6 +76,9 @@ ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(OWNER)/$@:latest
 	buildah push ghcr.io/$(OWNER)/$@:$${VERSION}
 endif
+
+
+
 
 ### Gleam
 
