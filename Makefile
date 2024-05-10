@@ -7,6 +7,11 @@ MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --silent
 
 include .env
+
+ifdef GITHUB_ACTIONS
+OWNER := $${{ github.repository_owner }}
+endif
+
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
 .PHONY: help
@@ -45,6 +50,30 @@ build: lua-language-server
 clean:
 	rm latest/lua_language_server.txt || true
 
+
+## cosign
+
+latest/cosign.name:
+	mkdir -p $(dir $@)
+	wget -q -O - 'https://api.github.com/repos/sigstore/cosign/releases/latest' | 
+	jq  -r '.name'
+
+cosign: latest/cosign.name
+	CONTAINER=$$(buildah from cgr.dev/chainguard/static:latest)
+	VERSION=$(shell cat $<) 
+	buildah config \
+	--label summary='Chainguard static with $@' \
+	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>'  \
+	--env lang=C.UTF-8 $${CONTAINER}
+	buildah add --chmod 755 --from  gcr.io/projectsigstore/cosign:$${VERSION}  $${CONTAINER} /ko-app/cosign /usr/local/bin/cosign
+	buildah config --cmd '' $${CONTAINER}
+	buildah config --entrypoint '[ "cosign"]' $${CONTAINER}
+	buildah commit $${CONTAINER} ghcr.io/$(OWNER)/$(call Build,$@):$${VERSION}
+	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(OWNER)/$(call Build,$@):latest
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(OWNER)/$(call Build,$@):latest
+	buildah push ghcr.io/$(OWNER)/$(call Build,$@)::$${VERSION}
+endif
 
 ### Gleam
 
@@ -249,16 +278,6 @@ lua-language-server: latest/lua_language_server.txt
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
-
-
-
-
-
-pull:
-	podman pull ghcr.io/grantmacken/lua-language-server
-
-
-
 
 
 
