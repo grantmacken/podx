@@ -6,15 +6,22 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --silent
 include .env
-OWNER := $(REPO_OWNER)
+## github env vars
+#  GITHUB_REPOSITORY
+#  GITHUB_REF_NAME=main
+# GITHUB_JOB=build
+# GITHUB_ACTOR=grantmacken
+# GITHUB_TRIGGERING_ACTOR=grantmacken
+# GITHUB_REF_TYPE=bran
+OWNER := $(GITHUB_REPOSITORY_OWNER)
 
 BIN := $(HOME)/.local/bin
 
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
 
-default:
-	printenv
+default: gleam
+	# printenv
 
 .PHONY: help
 help: ## show this help
@@ -50,16 +57,7 @@ clean:
 	rm latest/lua_language_server.txt || true
 
 
-$(HOME)/.local/bin/cosign:
-	cat << EOF | tee $@
-	cd $(HOME)/zie
-	# journalctl --no-pager --user -xeu zie-toolbox.service
-	launch /bin/bash -c 'distrobox enter zie-quadlet'
-	EOF
-
-
 ### Gleam
-
 latest/rebar3:
 	mkdir -p $(dir $@)
 	cd latest
@@ -99,13 +97,10 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'mix --version' || true
 	buildah run $${CONTAINER} sh -c 'which erl' || true
 	buildah run $${CONTAINER} sh -c 'erl --version' || true
-	buildah config --cmd '' $${CONTAINER}
-	buildah config --entrypoint '[ "gleam"]' $${CONTAINER}
-	buildah config --workingdir  '/home/nonroot' $${CONTAINER}
-	# buildah config --cmd  '["/bin/sh", "-c" ]' $${CONTAINER}
-	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+	buildah config --cmd '' --entrypoint '[ "gleam"]' --workingdir  '/home/nonroot'  $${CONTAINER}
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/$@
+	buildah commit --rm $${CONTAINER} ghcr.io/$(GITHUB_REPOSITORY_OWNER)/$@
+	buildah push ghcr.io/$(GITHUB_REPOSITORY_OWNER)/$@
 endif
 
 
