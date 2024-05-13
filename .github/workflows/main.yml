@@ -26,19 +26,4 @@ jobs:
           password: ${{ github.token }}
       - name: build images
         shell: bash
-        run: |
-          # make cosign
-          make gleam
-          #make bash-language-server
-          #make yaml-language-server
-          # make vscode-langservers-extracted
-          # make versions
-          # # make build-w3m
-          # make build-curl
-          # make build-cmark
-          # make certs
-          # make build-openresty
-          echo '----------------'
-          cat .env
-          echo '----------------'
-          podman images
+        run: make

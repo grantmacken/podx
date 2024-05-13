@@ -8,12 +8,19 @@ MAKEFLAGS += --silent
 include .env
 
 ifdef GITHUB_ACTIONS
-OWNER := $(shell echo $${{ github.repository_owner }})
+OWNER := xxx
 endif
 
 BIN := $(HOME)/.local/bin
 
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
+
+
+default:
+	printenv
+
+
+
 
 .PHONY: help
 help: ## show this help
@@ -43,8 +50,7 @@ xxxx:
 	echo "openresty version: $${VERSION}"
 
 
-.PHONY: build
-build: lua-language-server
+
 
 # build-alpine build-w3m build-curl build-cmark certs build-openresty
 
