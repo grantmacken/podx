@@ -6,10 +6,7 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --silent
 include .env
-
-ifdef GITHUB_ACTIONS
-OWNER := xxx
-endif
+OWNER := $(REPO_OWNER)
 
 BIN := $(HOME)/.local/bin
 
