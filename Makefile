@@ -51,8 +51,7 @@ build: lua-language-server
 clean:
 	rm latest/lua_language_server.txt || true
 
-
-## cosig
+## cosign
 
 latest/cosign.name:
 	mkdir -p $(dir $@)
@@ -75,7 +74,16 @@ cosign: latest/cosign.name
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(OWNER)/$@:latest
 	buildah push ghcr.io/$(OWNER)/$@:$${VERSION}
-endif
+	endif
+
+
+$(HOME)/.local/bin/cosign:
+	cat << EOF | tee $@
+	cd $(HOME)/zie
+	# journalctl --no-pager --user -xeu zie-toolbox.service
+	launch /bin/bash -c 'distrobox enter zie-quadlet'
+	EOF
+
 
 
 
@@ -88,11 +96,6 @@ latest/rebar3:
 	URL=https://s3.amazonaws.com/rebar3/rebar3
 	curl -L --output rebar3 $${URL} 
 
-
-
-latest/gleam.tarball_url:
-	mkdir -p $(dir $@)
-	wget -q -O - 'https://api.github.com/repos/gleam-lang/gleam/tags' | jq  -r '.[0].tarball_url' | tee $@
 
 latest/gleam.asset:
 	mkdir -p $(dir $@)
@@ -128,6 +131,7 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'erl --version' || true
 	buildah config --cmd '' $${CONTAINER}
 	buildah config --entrypoint '[ "gleam"]' $${CONTAINER}
+	buildah config --workingdir  '/home/nonroot' $${CONTAINER}
 	# buildah config --cmd  '["/bin/sh", "-c" ]' $${CONTAINER}
 	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
 ifdef GITHUB_ACTIONS
