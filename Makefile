@@ -16,9 +16,6 @@ MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 default:
 	printenv
 
-
-
-
 .PHONY: help
 help: ## show this help
 	@cat $(MAKEFILE_LIST) |
@@ -47,37 +44,10 @@ xxxx:
 	echo "openresty version: $${VERSION}"
 
 
-
-
 # build-alpine build-w3m build-curl build-cmark certs build-openresty
 
 clean:
 	rm latest/lua_language_server.txt || true
-
-## cosign
-
-latest/cosign.name:
-	mkdir -p $(dir $@)
-	echo -n ' - latest cosign release version: '
-	wget -q -O - 'https://api.github.com/repos/sigstore/cosign/releases/latest' |
-	jq  -r '.name' | tee $@
-
-cosign: latest/cosign.name
-	CONTAINER=$$(buildah from cgr.dev/chainguard/static:latest)
-	VERSION=$(shell cat $<) 
-	buildah config \
-	--label summary='Chainguard static with $@' \
-	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>'  \
-	--env lang=C.UTF-8 $${CONTAINER}
-	buildah add --chmod 755 --from  gcr.io/projectsigstore/cosign:$${VERSION}  $${CONTAINER} /ko-app/cosign /usr/local/bin/cosign
-	buildah config --cmd '' $${CONTAINER}
-	buildah config --entrypoint '[ "cosign"]' $${CONTAINER}
-	buildah commit $${CONTAINER} ghcr.io/$(OWNER)/$@:$${VERSION}
-	buildah commit --rm --squash $${CONTAINER} ghcr.io/$(OWNER)/$@:latest
-ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(OWNER)/$@:latest
-	buildah push ghcr.io/$(OWNER)/$@:$${VERSION}
-	endif
 
 
 $(HOME)/.local/bin/cosign:
@@ -86,9 +56,6 @@ $(HOME)/.local/bin/cosign:
 	# journalctl --no-pager --user -xeu zie-toolbox.service
 	launch /bin/bash -c 'distrobox enter zie-quadlet'
 	EOF
-
-
-
 
 
 ### Gleam
@@ -235,17 +202,6 @@ ifdef GITHUB_ACTIONS
 endif
 	podman images
 
-xxx:
-	buildah run $${CONTAINER} sh -c 'ln -s /node_modules/bash-language-server/out/cli.js /usr/local/bin/bash-language-server'
-	buildah config --entrypoint  '["bash-language-server", "start"]' $${CONTAINER}
-	VERSION=$$(buildah run $${CONTAINER} sh -c 'bash-language-server --version' | grep -oP '(\d+\.){2}\d+' | head -1 )
-	sed -i "s/BASH_LANGUAGE_SERVER=.*/BASH_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
-	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
-	podman images
-	podman inspect ghcr.io/$(REPO_OWNER)/$@
-ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/$@
-endif
 
 
 
@@ -290,9 +246,6 @@ lua-language-server: latest/lua_language_server.txt
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
-
-
-
 
 .PHONY: build-alpine
 build-alpine: ## buildah build alpine with added directories and entrypoint
@@ -607,6 +560,4 @@ ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/erlang_ls:v$${OTP_VERSION}
 endif
 
-.PHONY: t
-t:
-	podman run --rm  -i localhost/erlang_ls:v25.0.1 
+
