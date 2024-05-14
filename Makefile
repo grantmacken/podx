@@ -80,7 +80,7 @@ latest/gleam: latest/gleam.asset
 	ls -al $(dir $@)
 
 gleam: latest/gleam
-	CONTAINER=$$(buildah from cgr.dev/chainguard/erlang:latest)
+	CONTAINER=$$(buildah from cgr.dev/chainguard/erlang:latest-dev)
 	buildah config \
 	--label summary='chainguard/erlang: with $@' \
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>'  \
