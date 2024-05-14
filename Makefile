@@ -80,28 +80,31 @@ latest/gleam: latest/gleam.asset
 	ls -al $(dir $@)
 
 gleam: latest/gleam
-	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	CONTAINER=$$(buildah from cgr.dev/chainguard/erlang:latest)
 	buildah config \
-	--label summary='Wolfi-os with $@' \
+	--label summary='chainguard/erlang: with $@' \
 	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>'  \
 	--env lang=C.UTF-8 $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'apk add erlang-26 elixir-1.16'
+	buildah config --cmd '' --entrypoint '[ "/bin/sh", "-c"]' $${CONTAINER}
+	buildah run $${CONTAINER} 'apk add elixir-1.16'
 	buildah add --chown root:root $${CONTAINER} '$<' '/usr/local/bin/'
 	buildah add --chmod 755 --chown root:root $${CONTAINER} 'latest/rebar3' '/usr/local/bin/'
 	buildah run $${CONTAINER} sh -c 'ls -al /usr/local/bin/'
-	buildah run $${CONTAINER} sh -c 'gleam --version' || true
-	buildah run $${CONTAINER} sh -c 'which rebar3' || true
-	buildah run $${CONTAINER} sh -c 'rebar3 --version' || true
-	buildah run $${CONTAINER} sh -c 'rebar3 help' || true
-	buildah run $${CONTAINER} sh -c 'elixir --version' || true
-	buildah run $${CONTAINER} sh -c 'mix --version' || true
+	buildah run $${CONTAINER} sh -c 'gleam --version'
+	buildah run $${CONTAINER} sh -c 'which rebar3'
+	buildah run $${CONTAINER} sh -c 'rebar3 --version'
+	buildah run $${CONTAINER} sh -c 'rebar3 help'
+	buildah run $${CONTAINER} sh -c 'elixir --version'
+	buildah run $${CONTAINER} sh -c 'mix --version'
 	buildah run $${CONTAINER} sh -c 'which erl' || true
 	buildah run $${CONTAINER} sh -c 'erl --version' || true
-	buildah config --cmd '' --entrypoint '[ "gleam"]' --workingdir  '/home/nonroot'  $${CONTAINER}
-ifdef GITHUB_ACTIONS
-	buildah commit --rm $${CONTAINER} ghcr.io/$(GITHUB_REPOSITORY_OWNER)/$@
-	buildah push ghcr.io/$(GITHUB_REPOSITORY_OWNER)/$@
-endif
+	buildah run $${CONTAINER} sh -c 'cat /usr/lib/erlang/releases/RELEASES' || true
+	buildah run $${CONTAINER} sh -c "erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell" || true
+
+# ifdef GITHUB_ACTIONS
+# 	buildah commit --rm $${CONTAINER} ghcr.io/$(GITHUB_REPOSITORY_OWNER)/$@
+# 	buildah push ghcr.io/$(GITHUB_REPOSITORY_OWNER)/$@
+# endif
 
 
 ###  Bash Language Server
