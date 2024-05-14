@@ -98,7 +98,7 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'which erl' || true
 	buildah run $${CONTAINER} sh -c 'erl --version' || true
 	buildah run $${CONTAINER} sh -c 'cat /usr/lib/erlang/releases/RELEASES' || true
-	buildah run $${CONTAINER} sh -c 'pwd && ls -al .' || true
+	buildah run $${CONTAINER} sh -c 'pwd && ls -alR /home' || true
 	# buildah run $${CONTAINER} sh -c "erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell" || true
 	buildah config --cmd '' --entrypoint '[ "/bin/sh", "-c"]' $${CONTAINER}
 # ifdef GITHUB_ACTIONS
