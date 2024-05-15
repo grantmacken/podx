@@ -20,8 +20,8 @@ BIN := $(HOME)/.local/bin
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
 
-default: gleam
-	# printenv
+default:
+	printenv
 
 .PHONY: help
 help: ## show this help
@@ -100,7 +100,7 @@ gleam: latest/gleam
 	buildah run $${CONTAINER} sh -c 'cat /usr/lib/erlang/releases/RELEASES' || true
 	buildah run $${CONTAINER} sh -c 'pwd && ls -alR /home' || true
 	# buildah run $${CONTAINER} sh -c "erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().'  -noshell" || true
-	buildah config --cmd '' --entrypoint '[ "/bin/sh", "-c"]' $${CONTAINER}
+	buildah config --cmd '' --entrypoint '[ "/bin/bash", "-c"]' $${CONTAINER}
 ifdef GITHUB_ACTIONS
 	buildah commit --rm $${CONTAINER} ghcr.io/$(GITHUB_REPOSITORY_OWNER)/$@
 	buildah push ghcr.io/$(GITHUB_REPOSITORY_OWNER)/$@
