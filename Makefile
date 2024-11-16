@@ -5,7 +5,6 @@ SHELL := /bin/bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --silent
-include .env
 ## github env vars
 #  GITHUB_REPOSITORY
 #  GITHUB_REF_NAME=main
@@ -13,15 +12,14 @@ include .env
 # GITHUB_ACTOR=grantmacken
 # GITHUB_TRIGGERING_ACTOR=grantmacken
 # GITHUB_REF_TYPE=bran
-OWNER := $(GITHUB_REPOSITORY_OWNER)
-
+OWNER := grantmacken
 BIN := $(HOME)/.local/bin
-
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
+WOLFI_IMAGE       := cgr.dev/chainguard/wolfi-base:latest
+WORKING_CONTAINER := wolfi-base-working-container
 
-default:
-	printenv
+default: init lua-language-server
 
 .PHONY: help
 help: ## show this help
@@ -30,6 +28,62 @@ help: ## show this help
 	sort |
 	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+
+DEV_IMAGE         := ghcr.io/wolfi-dev/alpine-base:latest
+WORKING_CONTAINER := alpine-base-working-container
+
+default: init lua-language-server
+
+init: info/working.info
+info/working.info:
+	echo '##[ $@ ]##'
+	mkdir -p $(dir $@)
+	podman images | grep -oP '$(DEV_IMAGE)' || buildah pull $(DEV_IMAGE) | tee  $@
+	buildah containers | grep -oP $(WORKING_CONTAINER) || buildah from $(DEV_IMAGE) | tee -a $@
+
+lua-language-server:
+	buildah run $(WORKING_CONTAINER) apk add \
+		--update \
+		--no-cache \
+		--repository http://dl-cdn.alpinelinux.org/alpine/edge/community/ \
+		lua-language-server
+	ENTRYPOINT=$$(buildah run $(WORKING_CONTAINER) which lua-language-server)
+	buildah config --entrypoint "['$$ENTRYPOINT']" $(WORKING_CONTAINER)
+	buildah commit --rm $${CONTAINER} ghcr.io/$(OWNER)/$@
+	podman images
+	podman inspect ghcr.io/$(OWNER)/$@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(OWNER)/$@
+endif
+
+
+#############################################
+# IGNORE WIP below
+##############################################
+
+sddsd:
+	VERSION=$$(grep -oP '(\d+\.){2}\d+' $< | head -1 )
+	sed -i "s/LUA_LANGUAGE_SERVER=.*/LUA_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah run $${CONTAINER} sh -c 'apk add wget libgcc' &>/dev/null
+	# buildah run $${CONTAINER} sh -c 'apk add build-base glibc wget'
+	buildah run $${CONTAINER} sh -c 'mkdir -p /app'
+	cat $< | buildah run $${CONTAINER} sh -c 'cat - | wget -q -O- -i- | tar xvz -C /app' &>/dev/null
+	# buildah run $${CONTAINER} sh -c '/app/bin/lua-language-server --version'
+	# buildah run $${CONTAINER} sh -c 'objdump -p /app/bin/lua-language-server | grep NEEDED' || true
+	# buildah run $${CONTAINER} sh -c 'ls -al /lib' || true
+	buildah commit --rm $${CONTAINER} bldr
+	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic:latest)
+	buildah add --chmod 755 --chown nonroot:nonroot --from localhost/bldr $${CONTAINER} '/app' '/app'
+	buildah config --entrypoint  '["/app/bin/lua-language-server"]' $${CONTAINER}
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+	podman images
+	podman inspect ghcr.io/$(REPO_OWNER)/$@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$@
+endif
+
+
 ###########################################
 ## These images are built by github actions
 ##########################################
@@ -37,12 +91,18 @@ help: ## show this help
 Build = $(patsubst build-%,podx-%,$1)
 Origin = $(patsubst build-%,%,$1)
 
-.PHONY: versions
+.PHONY: versions 
 versions:
 	podman pull cgr.dev/chainguard/wolfi-base:latest
 	VERSION=$$(podman run --rm cgr.dev/chainguard/wolfi-base /bin/ash -c 'cat /etc/os-release' | grep -oP 'VERSION_ID=\K.+')
 	sed -i "s/WOLFI_VER=.*/WOLFI_VER=$${VERSION}/" .env
 	echo " - wolfi version: $$VERSION"
+
+
+
+
+
+
 
 xxxx:
 	podman pull docker.io/openresty/openresty:alpine-apk
@@ -54,7 +114,7 @@ xxxx:
 # build-alpine build-w3m build-curl build-cmark certs build-openresty
 
 clean:
-	rm latest/lua_language_server.txt || true
+	rm -f latest/*
 
 
 ### Gleam
@@ -200,10 +260,6 @@ ifdef GITHUB_ACTIONS
 endif
 	podman images
 
-
-
-
-
 check:
 	# podman images
 	# podman inspect localhost/bldr-node
@@ -212,38 +268,6 @@ check:
 	podman run --rm --entrypoint '["/bin/sh", "-c"] ' localhost/shellcheck 'ls -al /usr/local/bin/shellcheck-stable'
 	echo '-----------------'
 
-
-
-latest/lua_language_server.txt:
-	mkdir -p $(dir $@)
-	wget -q -O - 'https://api.github.com/repos/LuaLS/lua-language-server/releases/latest' |
-	jq -r '.assets[].browser_download_url' |
-	grep linux-x64.tar.gz | tee $@
-
-lua-language-server: latest/lua_language_server.txt
-	echo '##[ $@ ]##'
-	# 'objdump -p /app/bin/lua-language-server | grep NEEDED'
-	# https://edu.chainguard.dev/chainguard/chainguard-images/reference/glibc-dynamic/image_specs/
-	VERSION=$$(grep -oP '(\d+\.){2}\d+' $< | head -1 )
-	sed -i "s/LUA_LANGUAGE_SERVER=.*/LUA_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
-	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	buildah run $${CONTAINER} sh -c 'apk add wget libgcc' &>/dev/null
-	# buildah run $${CONTAINER} sh -c 'apk add build-base glibc wget'
-	buildah run $${CONTAINER} sh -c 'mkdir -p /app'
-	cat $< | buildah run $${CONTAINER} sh -c 'cat - | wget -q -O- -i- | tar xvz -C /app' &>/dev/null
-	# buildah run $${CONTAINER} sh -c '/app/bin/lua-language-server --version'
-	# buildah run $${CONTAINER} sh -c 'objdump -p /app/bin/lua-language-server | grep NEEDED' || true
-	# buildah run $${CONTAINER} sh -c 'ls -al /lib' || true
-	buildah commit --rm $${CONTAINER} bldr
-	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic:latest)
-	buildah add --chmod 755 --chown nonroot:nonroot --from localhost/bldr $${CONTAINER} '/app' '/app'
-	buildah config --entrypoint  '["/app/bin/lua-language-server"]' $${CONTAINER}
-	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
-	podman images
-	podman inspect ghcr.io/$(REPO_OWNER)/$@
-ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/$@
-endif
 
 .PHONY: build-alpine
 build-alpine: ## buildah build alpine with added directories and entrypoint

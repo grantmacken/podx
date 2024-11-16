@@ -1,7 +1,7 @@
 name: podx builds
 on:
   schedule:
-    - cron: '0 5 * * *'  # 6am and 6pm every day
+    - cron: '0 2 * * 2'  #  2am every Tuesday
   push:
     branches:
     - main
@@ -25,5 +25,4 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ github.token }}
       - name: build images
-        shell: bash
         run: make

@@ -1,5 +1,7 @@
 _*
 .git
+files
+info
 latest
 src/proxy/certs
 src/proxy/conf/certs.conf
