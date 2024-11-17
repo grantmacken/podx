@@ -1,10 +1,14 @@
 SHELL := /bin/bash
-.ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 .DELETE_ON_ERROR:
+.ONESHELL:
+.DELETE_ON_ERROR:
+.SECONDARY:
+
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --silent
+
 ## github env vars
 #  GITHUB_REPOSITORY
 #  GITHUB_REF_NAME=main
@@ -16,10 +20,17 @@ OWNER := grantmacken
 BIN := $(HOME)/.local/bin
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
-WOLFI_IMAGE       := cgr.dev/chainguard/wolfi-base:latest
-WORKING_CONTAINER := wolfi-base-working-container
+WOLFI_IMAGE      := cgr.dev/chainguard/wolfi-base:latest
+WOLFI_CONTAINER  := wolfi-base-working-container
 
-default: init lua-language-server
+WOLFI_NODE_IMAGE := cgr.dev/chainguard/node
+NODE_CONTAINER   := node-working-container
+
+ALPINE_BASE_IMAGE := ghcr.io/wolfi-dev/alpine-base:latest
+ALPINE_CONTAINER  := alpine-base-working-container
+
+.PHONY: default
+default: lua-language-server
 
 .PHONY: help
 help: ## show this help
@@ -28,34 +39,16 @@ help: ## show this help
 	sort |
 	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-
-WOLFI_NODE_IMAGE    := cgr.dev/chainguard/node
-ALPINE_BASE_IMAGE  := ghcr.io/wolfi-dev/alpine-base:latest
-
-ALPINE_CONTAINER := alpine-base-working-container
-NODE_CONTAINER   := node-working-container
-
-default: init
-init: info/working-alpine.info info/working-node.info
-
 clean:
 	buildah rm $(ALPINE_CONTAINER)
 	buildah rm $(WOLFI_CONTAINER)
 	rm -f info/*
 
-info/working-alpine.info:
-	echo '##[ $@ ]##'
-	mkdir -p $(dir $@)
-	podman images | grep -oP '$(ALPINE_BASE_IMAGE)' || buildah pull $(ALPINE_BASE_IMAGE) | tee  $@
-	buildah containers | grep -oP $(ALPINE_CONTAINER) || buildah from $(ALPINE_BASE_IMAGE) | tee -a $@
-
-info/working-node.info:
-	echo '##[ $@ ]##'
-	mkdir -p $(dir $@)
-	podman images | grep -oP '$(WOLFI_NODE_IMAGE)' || buildah pull $(WOLFI_NODE_IMAGE) | tee  $@
-	buildah from $(WOLFI_NODE_IMAGE) | tee -a $@
-
-lua-language-server:
+lua-language-server: info/lua-language-server.json
+info/lua-language-server.json:
+	echo '##[ $(basename $(notdir $@)) ]##'
+	mkdir -p  $(dir $@)
+	podman images | grep -oP '$(ALPINE_BASE_IMAGE)' || buildah pull $(ALPINE_BASE_IMAGE)
 	buildah containers | grep -oP $(ALPINE_CONTAINER) || buildah from $(ALPINE_BASE_IMAGE)
 	buildah run $(ALPINE_CONTAINER) apk add \
 		--update \
@@ -64,13 +57,17 @@ lua-language-server:
 		lua-language-server
 	ENTRYPOINT=$$(buildah run $(ALPINE_CONTAINER) which lua-language-server)
 	buildah config --entrypoint "['$$ENTRYPOINT']" $(ALPINE_CONTAINER)
-	buildah commit $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$@
-	podman inspect ghcr.io/$(OWNER)/$@ | jq '.'
+	buildah commit $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@)) 
+	podman inspect ghcr.io/$(OWNER)/$(basename $(notdir $@)) | jq '.' | tee $@
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(OWNER)/$@
+	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@)) 
 endif
 
-
+stylua: info/stylua.info
+info/stylua.info:
+	buildah copy --from JohnnyMorganz/StyLua:0.20.0  --chmod 755 $(WORKING_CONTAINER) /stylua /usr/local/bin/stylua
+	buildah run $(WORKING_CONTAINER) ls -al /usr/local/bin/
+	buildah run $(WORKING_CONTAINER) stylua --version | tee $@
 
 
 
