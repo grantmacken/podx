@@ -29,32 +29,49 @@ help: ## show this help
 	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 
-DEV_IMAGE         := ghcr.io/wolfi-dev/alpine-base:latest
-WORKING_CONTAINER := alpine-base-working-container
+WOLFI_NODE_IMAGE    := cgr.dev/chainguard/node
+ALPINE_BASE_IMAGE  := ghcr.io/wolfi-dev/alpine-base:latest
 
-default: init lua-language-server
+ALPINE_CONTAINER := alpine-base-working-container
+NODE_CONTAINER   := node-working-container
 
-init: info/working.info
-info/working.info:
+default: init
+init: info/working-alpine.info info/working-node.info
+
+clean:
+	buildah rm $(ALPINE_CONTAINER)
+	buildah rm $(WOLFI_CONTAINER)
+	rm -f info/*
+
+info/working-alpine.info:
 	echo '##[ $@ ]##'
 	mkdir -p $(dir $@)
-	podman images | grep -oP '$(DEV_IMAGE)' || buildah pull $(DEV_IMAGE) | tee  $@
-	buildah containers | grep -oP $(WORKING_CONTAINER) || buildah from $(DEV_IMAGE) | tee -a $@
+	podman images | grep -oP '$(ALPINE_BASE_IMAGE)' || buildah pull $(ALPINE_BASE_IMAGE) | tee  $@
+	buildah containers | grep -oP $(ALPINE_CONTAINER) || buildah from $(ALPINE_BASE_IMAGE) | tee -a $@
+
+info/working-node.info:
+	echo '##[ $@ ]##'
+	mkdir -p $(dir $@)
+	podman images | grep -oP '$(WOLFI_NODE_IMAGE)' || buildah pull $(WOLFI_NODE_IMAGE) | tee  $@
+	buildah from $(WOLFI_NODE_IMAGE) | tee -a $@
 
 lua-language-server:
-	buildah run $(WORKING_CONTAINER) apk add \
+	buildah containers | grep -oP $(ALPINE_CONTAINER) || buildah from $(ALPINE_BASE_IMAGE)
+	buildah run $(ALPINE_CONTAINER) apk add \
 		--update \
 		--no-cache \
 		--repository http://dl-cdn.alpinelinux.org/alpine/edge/community/ \
 		lua-language-server
-	ENTRYPOINT=$$(buildah run $(WORKING_CONTAINER) which lua-language-server)
-	buildah config --entrypoint "['$$ENTRYPOINT']" $(WORKING_CONTAINER)
-	buildah commit --rm $${CONTAINER} ghcr.io/$(OWNER)/$@
-	podman images
-	podman inspect ghcr.io/$(OWNER)/$@
+	ENTRYPOINT=$$(buildah run $(ALPINE_CONTAINER) which lua-language-server)
+	buildah config --entrypoint "['$$ENTRYPOINT']" $(ALPINE_CONTAINER)
+	buildah commit $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$@
+	podman inspect ghcr.io/$(OWNER)/$@ | jq '.'
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(OWNER)/$@
 endif
+
+
+
 
 
 #############################################
@@ -82,6 +99,60 @@ sddsd:
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(REPO_OWNER)/$@
 endif
+
+# vscode-css-language-server -> ../vscode-langservers-extracted/bin/vscode-css-language-server
+# vscode-eslint-language-server -> ../vscode-langservers-extracted/bin/vscode-eslint-language-server
+# vscode-html-language-server -> ../vscode-langservers-extracted/bin/vscode-html-language-server
+# vscode-json-language-server -> ../vscode-langservers-extracted/bin/vscode-json-language-server
+# vscode-markdown-language-server -> ../vscode-langservers-extracted/bin/vscode-markdown-language-server
+# @NOTE: keep everything as is? leave npm intact?
+#
+bldr-vle:
+	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
+	buildah config --workingdir  '/app' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted' &>/dev/null
+	buildah commit --rm $${CONTAINER} $@
+
+vscode-langservers-extracted: bldr-vle
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah config \
+	--label summary='a Wolfi based $@' \
+	--label maintainer=$(MAINTANER) $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-21' &>/dev/null
+	buildah add --chown root:root --from localhost/bldr-vle $${CONTAINER} '/app' '/'
+	buildah config --workingdir  '/node_modules/' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'ls -al .'
+	buildah run $${CONTAINER} sh -c 'which sh'
+	buildah config --entrypoint  '["/bin/sh", "-c"]' $${CONTAINER}
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$@
+endif
+
+bldr-yamlls:
+	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
+	buildah config --workingdir  '/app' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'npm i yaml-language-server'
+	buildah run $${CONTAINER} sh -c 'ls -al node_modules/'
+	buildah commit --rm $${CONTAINER} $@
+
+yaml-language-server: bldr-yamlls
+	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
+	buildah config \
+	--label summary='a Wolfi based yaml-language-server' \
+	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
+	buildah run $${CONTAINER} sh -c 'apk add nodejs-21'
+	buildah add --chown root:root --from localhost/bldr-yamlls $${CONTAINER} '/app' '/'
+	buildah config --workingdir  '/node_modules/yaml-language-server' $${CONTAINER}
+	buildah config --entrypoint  '["./bin/yaml-language-server", "--stdio"]' $${CONTAINER}
+	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(REPO_OWNER)/$@
+endif
+	podman images
+
+
+
 
 
 ###########################################
@@ -113,8 +184,7 @@ xxxx:
 
 # build-alpine build-w3m build-curl build-cmark certs build-openresty
 
-clean:
-	rm -f latest/*
+
 
 
 ### Gleam
@@ -210,55 +280,6 @@ endif
 ### section end Bash-language-server
 
 
-# vscode-css-language-server -> ../vscode-langservers-extracted/bin/vscode-css-language-server
-# vscode-eslint-language-server -> ../vscode-langservers-extracted/bin/vscode-eslint-language-server
-# vscode-html-language-server -> ../vscode-langservers-extracted/bin/vscode-html-language-server
-# vscode-json-language-server -> ../vscode-langservers-extracted/bin/vscode-json-language-server
-# vscode-markdown-language-server -> ../vscode-langservers-extracted/bin/vscode-markdown-language-server
-# @NOTE: keep everything as is? leave npm intact?
-bldr-vle:
-	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
-	buildah config --workingdir  '/app' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'npm install vscode-langservers-extracted' &>/dev/null
-	buildah commit --rm $${CONTAINER} $@
-
-vscode-langservers-extracted: bldr-vle
-	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	buildah config \
-	--label summary='a Wolfi based $@' \
-	--label maintainer=$(MAINTANER) $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'apk add nodejs-21' &>/dev/null
-	buildah add --chown root:root --from localhost/bldr-vle $${CONTAINER} '/app' '/'
-	buildah config --workingdir  '/node_modules/' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'ls -al .'
-	buildah run $${CONTAINER} sh -c 'which sh'
-	buildah config --entrypoint  '["/bin/sh", "-c"]' $${CONTAINER}
-	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
-ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/$@
-endif
-
-bldr-yamlls:
-	CONTAINER=$$(buildah from cgr.dev/chainguard/node)
-	buildah config --workingdir  '/app' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'npm i yaml-language-server'
-	buildah run $${CONTAINER} sh -c 'ls -al node_modules/'
-	buildah commit --rm $${CONTAINER} $@
-
-yaml-language-server: bldr-yamlls
-	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	buildah config \
-	--label summary='a Wolfi based yaml-language-server' \
-	--label maintainer='Grant MacKenzie <grantmacken@gmail.com>' $${CONTAINER}
-	buildah run $${CONTAINER} sh -c 'apk add nodejs-21'
-	buildah add --chown root:root --from localhost/bldr-yamlls $${CONTAINER} '/app' '/'
-	buildah config --workingdir  '/node_modules/yaml-language-server' $${CONTAINER}
-	buildah config --entrypoint  '["./bin/yaml-language-server", "--stdio"]' $${CONTAINER}
-	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
-ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/$@
-endif
-	podman images
 
 check:
 	# podman images
