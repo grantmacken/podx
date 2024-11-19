@@ -57,8 +57,8 @@ info/lua-language-server.json:
 		lua-language-server
 	ENTRYPOINT=$$(buildah run $(ALPINE_CONTAINER) which lua-language-server)
 	buildah config --cmd "['$$ENTRYPOINT']" $(ALPINE_CONTAINER)
+	buildah commit --rm --quiet --squash $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
 ifdef GITHUB_ACTIONS
-	buildah commit -rm --quiet --squash $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
 	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@))
 endif
 
@@ -73,7 +73,7 @@ info/stylua.json:
 	ENTRYPOINT=$$(buildah run $(WOLFI_CONTAINER) which $(basename $(notdir $@)))
 	echo $$ENTRYPOINT
 	buildah config --entrypoint "['$$ENTRYPOINT']" $(WOLFI_CONTAINER)
-	buildah commit $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
+	buildah commit --rm --quiet --squash $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
 	podman inspect ghcr.io/$(OWNER)/$(basename $(notdir $@)) | jq '.' > $@
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@))
