@@ -20,7 +20,7 @@ OWNER := grantmacken
 BIN := $(HOME)/.local/bin
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 
-WOLFI_IMAGE      := cgr.dev/chainguard/wolfi-base:latest
+WOLFI_BASE_IMAGE := cgr.dev/chainguard/wolfi-base:latest
 WOLFI_CONTAINER  := wolfi-base-working-container
 
 WOLFI_NODE_IMAGE := cgr.dev/chainguard/node
@@ -30,7 +30,7 @@ ALPINE_BASE_IMAGE := ghcr.io/wolfi-dev/alpine-base:latest
 ALPINE_CONTAINER  := alpine-base-working-container
 
 .PHONY: default
-default: lua-language-server
+default: lua-language-server stylua
 
 .PHONY: help
 help: ## show this help
@@ -56,19 +56,28 @@ info/lua-language-server.json:
 		--repository http://dl-cdn.alpinelinux.org/alpine/edge/community/ \
 		lua-language-server
 	ENTRYPOINT=$$(buildah run $(ALPINE_CONTAINER) which lua-language-server)
-	buildah config --entrypoint "['$$ENTRYPOINT']" $(ALPINE_CONTAINER)
-	buildah commit $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@)) 
-	podman inspect ghcr.io/$(OWNER)/$(basename $(notdir $@)) | jq '.' | tee $@
+	buildah config --cmd "['$$ENTRYPOINT']" $(ALPINE_CONTAINER)
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@)) 
+	buildah commit -rm --quiet --squash $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
+	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@))
 endif
 
-stylua: info/stylua.info
-info/stylua.info:
-	buildah copy --from JohnnyMorganz/StyLua:0.20.0  --chmod 755 $(WORKING_CONTAINER) /stylua /usr/local/bin/stylua
-	buildah run $(WORKING_CONTAINER) ls -al /usr/local/bin/
-	buildah run $(WORKING_CONTAINER) stylua --version | tee $@
-
+## TODO get latest
+stylua: info/stylua.json
+info/stylua.json:
+	echo '##[ $(basename $(notdir $@)) ]##'
+	mkdir -p  $(dir $@)
+	podman images | grep -oP '$(WOLFI_BASE_IMAGE)' || buildah pull $(WOLFI_BASE_IMAGE)
+	buildah containers | grep -oP $(WOLFI_CONTAINER) || buildah from $(WOLFI_BASE_IMAGE)
+	buildah copy --from docker.io/johnnymorganz/stylua:0.20.0  --chmod 755 $(WOLFI_CONTAINER) /stylua /usr/local/bin/stylua
+	ENTRYPOINT=$$(buildah run $(WOLFI_CONTAINER) which $(basename $(notdir $@)))
+	echo $$ENTRYPOINT
+	buildah config --entrypoint "['$$ENTRYPOINT']" $(WOLFI_CONTAINER)
+	buildah commit $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
+	podman inspect ghcr.io/$(OWNER)/$(basename $(notdir $@)) | jq '.' > $@
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@))
+endif
 
 
 #############################################
