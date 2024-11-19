@@ -56,7 +56,7 @@ info/lua-language-server.json:
 		--repository http://dl-cdn.alpinelinux.org/alpine/edge/community/ \
 		lua-language-server
 	ENTRYPOINT=$$(buildah run $(ALPINE_CONTAINER) which lua-language-server)
-	buildah config --cmd "['$$ENTRYPOINT']" $(ALPINE_CONTAINER)
+	buildah config --entrypoint "['$$ENTRYPOINT']" $(ALPINE_CONTAINER)
 	buildah commit --rm --quiet --squash $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@))
