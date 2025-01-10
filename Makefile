@@ -1,21 +1,24 @@
-SHELL := /bin/bash
+SHELL := /usr/bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
-.DELETE_ON_ERROR:
-.ONESHELL:
-.DELETE_ON_ERROR:
-.SECONDARY:
 
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
+MAKEFLAGS += --no-builtin-variables
 MAKEFLAGS += --silent
+unexport MAKEFLAGS
+
+.SUFFIXES:            # Delete the default suffixes
+.ONESHELL:            # all lines of the recipe will be given to a single invocation of the shell
+.DELETE_ON_ERROR:
+.SECONDARY:
 
 ## github env vars
-#  GITHUB_REPOSITORY
-#  GITHUB_REF_NAME=main
+# GITHUB_REPOSITORY
+# GITHUB_REF_NAME=main
 # GITHUB_JOB=build
 # GITHUB_ACTOR=grantmacken
 # GITHUB_TRIGGERING_ACTOR=grantmacken
-# GITHUB_REF_TYPE=bran
+# GITHUB_REF_TYPE
 OWNER := grantmacken
 BIN := $(HOME)/.local/bin
 MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
@@ -23,31 +26,62 @@ MAINTAINER := 'Grant MacKenzie <grantmacken@gmail.com>'
 WOLFI_BASE_IMAGE := cgr.dev/chainguard/wolfi-base:latest
 WOLFI_CONTAINER  := wolfi-base-working-container
 
-WOLFI_NODE_IMAGE := cgr.dev/chainguard/node
-NODE_CONTAINER   := node-working-container
-
 ALPINE_BASE_IMAGE := ghcr.io/wolfi-dev/alpine-base:latest
 ALPINE_CONTAINER  := alpine-base-working-container
 
-.PHONY: default
-default: lua-language-server stylua
+HEADING1 := \#
+HEADING2 := $(HEADING1)$(HEADING1)
+
+COMMA := ,
+EMPTY:=
+SPACE := $(EMPTY) $(EMPTY)
+
+.PHONY: default clean init runtimes
+default: init
+	cat info/init.md > README.md
+	cat info/runtimes.md >> README.md
+	rm -f info/*
 
 .PHONY: help
 help: ## show this help
-	@cat $(MAKEFILE_LIST) |
+	cat $(MAKEFILE_LIST) |
 	grep -oP '^[a-zA-Z_-]+:.*?## .*$$' |
 	sort |
 	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+
+init: info/init.md ## install base images
+info/init.md:
+	printf "$(HEADING1) %s\n\n" "A bundle LSP server and 'runtime' container images" | tee $@
+	cat << EOF | tee $@
+	These are 'helper' images for my neovim based [toolbox](https://github.com/grantmacken/zie-toolbox)
+	I do not install runtimes like nodejs jvm locally and also keep these 'runtimes'
+	out of my main toolbox. Instead runtimes are in containers images. One image for each runtime.
+	The second category of images built here are CLI tools that are not included in my toolbox
+	These are LSP servers and diagnostic linters or formatters
+	EOF
+	podman images | grep -oP '$(ALPINE_BASE_IMAGE)' || buildah pull $(ALPINE_BASE_IMAGE)
+	podman images | grep -oP '$(WOLFI_BASE_IMAGE)' || buildah pull $(WOLFI_BASE_IMAGE)
+
+lsp_servers: info/lsp_servers.md
+info/lsp_servers.md:
+	printf "$(HEADING2) %s\n\n" "LSP servers" | tee $@
+
+runtimes: nodejs
+	printf "$(HEADING2) %s\n\n" "Runtimes" | tee $@
+
+
 clean:
-	buildah rm $(ALPINE_CONTAINER)
-	buildah rm $(WOLFI_CONTAINER)
+	# buildah rm $(ALPINE_CONTAINER)
+	# buildah rm $(WOLFI_CONTAINER)
 	rm -f info/*
+
 
 lua-language-server: info/lua-language-server.json
 info/lua-language-server.json:
-	echo '##[ $(basename $(notdir $@)) ]##'
-	mkdir -p  $(dir $@)
+	NAME=$(basename $(notdir $@))
+	echo "##[ $(basename $(notdir $@)) ]##"
+	mkdir -p  $(dir $@
 	podman images | grep -oP '$(ALPINE_BASE_IMAGE)' || buildah pull $(ALPINE_BASE_IMAGE)
 	buildah containers | grep -oP $(ALPINE_CONTAINER) || buildah from $(ALPINE_BASE_IMAGE)
 	buildah run $(ALPINE_CONTAINER) apk add \
@@ -57,10 +91,12 @@ info/lua-language-server.json:
 		lua-language-server
 	ENTRYPOINT=$$(buildah run $(ALPINE_CONTAINER) which lua-language-server)
 	buildah config --cmd '["lua-language-server"]' $(ALPINE_CONTAINER)
-	buildah commit --rm --quiet --squash $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
+	buildah commit --rm --quiet --squash $(ALPINE_CONTAINER) ghcr.io/$(OWNER)/$${NAME}
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@))
+	buildah push ghcr.io/$(OWNER)/$${NAME}
 endif
+
+
 
 ## TODO get latest
 stylua: info/stylua.json
@@ -70,42 +106,53 @@ info/stylua.json:
 	podman images | grep -oP '$(WOLFI_BASE_IMAGE)' || buildah pull $(WOLFI_BASE_IMAGE)
 	buildah containers | grep -oP $(WOLFI_CONTAINER) || buildah from $(WOLFI_BASE_IMAGE)
 	buildah copy --from docker.io/johnnymorganz/stylua:0.20.0  --chmod 755 $(WOLFI_CONTAINER) /stylua /usr/local/bin/stylua
-	ENTRYPOINT=$$(buildah run $(WOLFI_CONTAINER) which $(basename $(notdir $@)))
-	echo $$ENTRYPOINT
+	# ENTRYPOINT=$$(buildah run $(WOLFI_CONTAINER) which $(basename $(notdir $@)))
+	# echo $$ENTRYPOINT
 	buildah config --entrypoint "['$$ENTRYPOINT']" $(WOLFI_CONTAINER)
 	buildah commit --rm --quiet --squash $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$(basename $(notdir $@))
-	podman inspect ghcr.io/$(OWNER)/$(basename $(notdir $@)) | jq '.' > $@
+	# podman inspect ghcr.io/$(OWNER)/$(basename $(notdir $@)) | jq '.' > $@
 ifdef GITHUB_ACTIONS
 	buildah push ghcr.io/$(OWNER)/$(basename $(notdir $@))
+endif
+
+##[[ NODEJS ]]##
+latest/nodejs.tagname:
+	echo '##[ $@ ]##'
+	mkdir -p $(dir $@)
+	wget -q -O - 'https://api.github.com/repos/nodejs/node/releases/latest' | jq '.tag_name' | tee $@
+
+
+
+files/node/usr/local/bin/node: latest/nodejs.tagname
+	echo '##[ $@ ]##'
+	mkdir -p files/$(notdir $@)/usr/local
+	echo "source: $${SRC}"
+	wget $${SRC} -q -O- | tar xz --strip-components=1 -C files/nodejs/usr/local
+	buildah add --chmod 755 $(WOLFI_CONTAINER) files/$(notdir $@)/usr/local
+	buildah commit --rm --quiet --squash $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$${NAME} &>/dev/null
+
+nodejs: info/node.md
+info/nodejs.md: latest/nodejs.tagname
+	NAME=$(basename $(notdir $@))
+	TAG=$(shell cat $<)
+	SRC=https://nodejs.org/download/release/$${TAG}/node-$${TAG}-linux-x64.tar.gz
+	wget $${SRC} -q -O- | tar xz --strip-components=1 -C files/nodejs/usr/local
+	buildah add --chmod 755  $(WOLFI_CONTAINER) files/$${NAME} &>/dev/null
+	buildah run $(WOLFI_CONTAINER) ls -alR /usr/local
+	printf "$(HEADING2) %s\n\n" "$${NAME}" | tee $@
+	printf "The toolbox nodejs: %s runtime.\n This is the **latest** prebuilt release\
+	available from [node org](https://nodejs.org/download/release/)"  "$$(cat latest/nodejs.tagname)" | tee -a $@
+	buildah commit --rm --quiet --squash $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$${NAME} &>/dev/null
+
+sdddd:
+ifdef GITHUB_ACTIONS
+	buildah push ghcr.io/$(OWNER)/$${NAME}
 endif
 
 
 #############################################
 # IGNORE WIP below
 ##############################################
-
-sddsd:
-	VERSION=$$(grep -oP '(\d+\.){2}\d+' $< | head -1 )
-	sed -i "s/LUA_LANGUAGE_SERVER=.*/LUA_LANGUAGE_SERVER=\"$${VERSION}\"/" .env
-	CONTAINER=$$(buildah from cgr.dev/chainguard/wolfi-base)
-	buildah run $${CONTAINER} sh -c 'apk add wget libgcc' &>/dev/null
-	# buildah run $${CONTAINER} sh -c 'apk add build-base glibc wget'
-	buildah run $${CONTAINER} sh -c 'mkdir -p /app'
-	cat $< | buildah run $${CONTAINER} sh -c 'cat - | wget -q -O- -i- | tar xvz -C /app' &>/dev/null
-	# buildah run $${CONTAINER} sh -c '/app/bin/lua-language-server --version'
-	# buildah run $${CONTAINER} sh -c 'objdump -p /app/bin/lua-language-server | grep NEEDED' || true
-	# buildah run $${CONTAINER} sh -c 'ls -al /lib' || true
-	buildah commit --rm $${CONTAINER} bldr
-	CONTAINER=$$(buildah from cgr.dev/chainguard/glibc-dynamic:latest)
-	buildah add --chmod 755 --chown nonroot:nonroot --from localhost/bldr $${CONTAINER} '/app' '/app'
-	buildah config --entrypoint  '["/app/bin/lua-language-server"]' $${CONTAINER}
-	buildah commit --rm $${CONTAINER} ghcr.io/$(REPO_OWNER)/$@
-	podman images
-	podman inspect ghcr.io/$(REPO_OWNER)/$@
-ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(REPO_OWNER)/$@
-endif
-
 # vscode-css-language-server -> ../vscode-langservers-extracted/bin/vscode-css-language-server
 # vscode-eslint-language-server -> ../vscode-langservers-extracted/bin/vscode-eslint-language-server
 # vscode-html-language-server -> ../vscode-langservers-extracted/bin/vscode-html-language-server
