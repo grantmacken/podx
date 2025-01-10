@@ -36,7 +36,7 @@ COMMA := ,
 EMPTY:=
 SPACE := $(EMPTY) $(EMPTY)
 
-.PHONY: default clean init runtimes
+.PHONY: default clean init nodejs
 default: init
 	cat info/init.md > README.md
 	cat info/runtimes.md >> README.md
