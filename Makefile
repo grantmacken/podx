@@ -109,20 +109,25 @@ endif
 latest/nodejs.tagname:
 	echo '##[ $@ ]##'
 	mkdir -p $(dir $@)
-	wget -q -O - 'https://api.github.com/repos/nodejs/node/releases/latest' | jq '.tag_name' | tee $@
+	wget -q -O - 'https://api.github.com/repos/nodejs/node/releases/latest' | 
+	jq '.tag_name' |  tr -d '"' > $@
 
 
 nodejs: info/nodejs.md
 info/nodejs.md: latest/nodejs.tagname
 	NAME=$(basename $(notdir $@))
-	TAG=$(shell cat $<)
-	SRC=https://nodejs.org/download/release/$${TAG}/node-$${TAG}-linux-x64.tar.gz
-	wget $${SRC} -q -O- | tar xz --strip-components=1 -C files/nodejs/usr/local
+	VERSION=$(shell cat $<)
+	printf "nodejs version: %s\n" "$${VERSION}"
+	SRC=https://nodejs.org/download/release/$${VERSION}/node-$${VERSION}-linux-x64.tar.gz
+	printf "download URL: %s\n" "$${SRC}"
+	TARGET=files/$${NAME}/usr/local
+	mkdir -p $${TARGET}
+	wget $${SRC} -q -O- | tar xz --strip-components=1 -C $${TARGET}
 	buildah add --chmod 755  $(WOLFI_CONTAINER) files/$${NAME} &>/dev/null
 	buildah run $(WOLFI_CONTAINER) ls -alR /usr/local
 	printf "$(HEADING2) %s\n\n" "$${NAME}" | tee $@
-	printf "The toolbox nodejs: %s runtime.\n This is the **latest** prebuilt release\
-	available from [node org](https://nodejs.org/download/release/)"  "$$(cat latest/nodejs.tagname)" | tee -a $@
+	#printf "The toolbox nodejs: %s runtime.\n This is the **latest** prebuilt release\
+	#available from [node org](https://nodejs.org/download/release/)"  "$$(cat latest/nodejs.tagname)" | tee -a $@
 	buildah commit --rm --quiet --squash $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$${NAME} &>/dev/null
 
 sdddd:
