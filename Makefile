@@ -112,7 +112,7 @@ latest/nodejs.tagname:
 	wget -q -O - 'https://api.github.com/repos/nodejs/node/releases/latest' | jq '.tag_name' | tee $@
 
 
-nodejs: info/node.md
+nodejs: info/nodejs.md
 info/nodejs.md: latest/nodejs.tagname
 	NAME=$(basename $(notdir $@))
 	TAG=$(shell cat $<)
