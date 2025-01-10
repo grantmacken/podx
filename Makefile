@@ -125,17 +125,13 @@ info/nodejs.md: latest/nodejs.tagname
 	printf "download TARGET: %s\n" "$${TARGET}"
 	mkdir -p $${TARGET}
 	wget $${SRC} -q -O- | tar xz --strip-components=1 -C $${TARGET}
-	ls $${TARGET}
 	buildah add --chmod 755  $(WOLFI_CONTAINER) files/$${NAME} &>/dev/null
-	buildah run $(WOLFI_CONTAINER) ls -alR /usr/local
 	printf "$(HEADING2) %s\n\n" "$${NAME}" | tee $@
 	#printf "The toolbox nodejs: %s runtime.\n This is the **latest** prebuilt release\
 	#available from [node org](https://nodejs.org/download/release/)"  "$$(cat latest/nodejs.tagname)" | tee -a $@
 	buildah commit --rm --quiet --squash $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$${NAME} &>/dev/null
-
-sdddd:
 ifdef GITHUB_ACTIONS
-	buildah push ghcr.io/$(OWNER)/$${NAME}
+	buildah push ghcr.io/$(OWNER)/$${NAME}:latest
 endif
 
 
