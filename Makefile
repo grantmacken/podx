@@ -121,8 +121,13 @@ info/nodejs.md: latest/nodejs.tagname
 	SRC=https://nodejs.org/download/release/$${VERSION}/node-$${VERSION}-linux-x64.tar.gz
 	printf "download URL: %s\n" "$${SRC}"
 	TARGET=files/$${NAME}/usr/local
+	printf "download TARGET: %s\n" "$${TARGET}"
 	mkdir -p $${TARGET}
 	wget $${SRC} -q -O- | tar xz --strip-components=1 -C $${TARGET}
+	ls $${TARGET}
+
+
+xxx:
 	buildah add --chmod 755  $(WOLFI_CONTAINER) files/$${NAME} &>/dev/null
 	buildah run $(WOLFI_CONTAINER) ls -alR /usr/local
 	printf "$(HEADING2) %s\n\n" "$${NAME}" | tee $@
