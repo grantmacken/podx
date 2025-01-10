@@ -69,8 +69,6 @@ info/lsp_servers.md:
 	printf "$(HEADING2) %s\n\n" "LSP servers" | tee $@
 
 runtimes: nodejs
-	printf "$(HEADING2) %s\n\n" "Runtimes" | tee $@
-
 
 clean:
 	# buildah rm $(ALPINE_CONTAINER)
@@ -122,14 +120,6 @@ latest/nodejs.tagname:
 	mkdir -p $(dir $@)
 	wget -q -O - 'https://api.github.com/repos/nodejs/node/releases/latest' | jq '.tag_name' | tee $@
 
-
-files/node/usr/local/bin/node: latest/nodejs.tagname
-	echo '##[ $@ ]##'
-	mkdir -p files/$(notdir $@)/usr/local
-	echo "source: $${SRC}"
-	wget $${SRC} -q -O- | tar xz --strip-components=1 -C files/nodejs/usr/local
-	buildah add --chmod 755 $(WOLFI_CONTAINER) files/$(notdir $@)/usr/local
-	buildah commit --rm --quiet --squash $(WOLFI_CONTAINER) ghcr.io/$(OWNER)/$${NAME} &>/dev/null
 
 nodejs: info/node.md
 info/nodejs.md: latest/nodejs.tagname
