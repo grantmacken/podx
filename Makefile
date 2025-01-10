@@ -52,6 +52,7 @@ help: ## show this help
 
 init: info/init.md ## install base images
 info/init.md:
+	mkdir -p  $(dir $@)
 	printf "$(HEADING1) %s\n\n" "A bundle LSP server and 'runtime' container images" | tee $@
 	cat << EOF | tee $@
 	These are 'helper' images for my neovim based [toolbox](https://github.com/grantmacken/zie-toolbox)
@@ -120,7 +121,6 @@ latest/nodejs.tagname:
 	echo '##[ $@ ]##'
 	mkdir -p $(dir $@)
 	wget -q -O - 'https://api.github.com/repos/nodejs/node/releases/latest' | jq '.tag_name' | tee $@
-
 
 
 files/node/usr/local/bin/node: latest/nodejs.tagname
