@@ -115,6 +115,7 @@ latest/nodejs.tagname:
 
 nodejs: info/nodejs.md
 info/nodejs.md: latest/nodejs.tagname
+	buildah from $(WOLFI_BASE_IMAGE)
 	NAME=$(basename $(notdir $@))
 	VERSION=$(shell cat $<)
 	printf "nodejs version: %s\n" "$${VERSION}"
@@ -125,9 +126,6 @@ info/nodejs.md: latest/nodejs.tagname
 	mkdir -p $${TARGET}
 	wget $${SRC} -q -O- | tar xz --strip-components=1 -C $${TARGET}
 	ls $${TARGET}
-
-
-xxx:
 	buildah add --chmod 755  $(WOLFI_CONTAINER) files/$${NAME} &>/dev/null
 	buildah run $(WOLFI_CONTAINER) ls -alR /usr/local
 	printf "$(HEADING2) %s\n\n" "$${NAME}" | tee $@
