@@ -36,18 +36,9 @@ COMMA := ,
 EMPTY:=
 SPACE := $(EMPTY) $(EMPTY)
 
-.PHONY: default clean init nodejs
-default: init
-	cat info/init.md > README.md
-	cat info/runtimes.md >> README.md
-	rm -f info/*
 
-.PHONY: help
-help: ## show this help
-	cat $(MAKEFILE_LIST) |
-	grep -oP '^[a-zA-Z_-]+:.*?## .*$$' |
-	sort |
-	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+default: init nodejs
+
 
 
 init: info/init.md ## install base images
